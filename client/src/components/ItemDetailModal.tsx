@@ -1,3 +1,4 @@
+
 import { Fragment } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -27,17 +28,17 @@ export function ItemDetailModal({ isOpen, onClose, item, isLoading }: ItemDetail
             </div>
           )}
 
-          <h2 className="text-xl font-bold text-foreground">{item.title}</h2>
-
-          {item.image && (
+          {item.images && item.images.length > 0 && (
             <div className="relative w-full aspect-video rounded-lg overflow-hidden">
               <img 
-                src={item.image} 
+                src={item.images[0].url} 
                 alt={item.title}
                 className="object-cover w-full h-full"
               />
             </div>
           )}
+
+          <h2 className="text-xl font-bold text-foreground">{item.title}</h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -78,6 +79,7 @@ export function ItemDetailModal({ isOpen, onClose, item, isLoading }: ItemDetail
         <SheetContent
           side="bottom"
           className="h-[65vh] rounded-t-xl shadow-lg pt-4"
+          hideClose={true}
         >
           {content}
         </SheetContent>
@@ -87,7 +89,7 @@ export function ItemDetailModal({ isOpen, onClose, item, isLoading }: ItemDetail
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" hideClose={true}>
         {content}
       </DialogContent>
     </Dialog>
@@ -97,8 +99,8 @@ export function ItemDetailModal({ isOpen, onClose, item, isLoading }: ItemDetail
 function LoadingDetailContent() {
   return (
     <div className="space-y-4">
+      <Skeleton className="h-40 w-full" /> {/* Image skeleton */}
       <Skeleton className="h-6 w-1/2" />
-      <Skeleton className="h-40 w-full" />
       <div className="grid grid-cols-2 gap-4">
         {Array.from({ length: 3 }).map((_, index) => (
           <div key={index}>
