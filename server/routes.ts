@@ -180,22 +180,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Extract page properties according to your schema
         const properties = page.properties;
         const title = extractTitle(properties);
-        const description = extractRichText(properties.Description);
-        const status = extractSelect(properties.Status);
-        const priority = extractSelect(properties.Priority);
-        const date = extractDate(properties.Date);
-        const assignedTo = extractPerson(properties.AssignedTo);
-        const category = extractSelect(properties.Category);
+        
+        // Extract Box relation if available
+        const boxRelations = properties.Box?.relation || [];
+        const boxIds = boxRelations.map((rel: any) => rel.id);
+        
+        // Extract Room relation if available
+        let roomName = "";
+        if (properties.Room?.rollup?.array?.[0]?.relation) {
+          roomName = extractRollupRelation(properties.Room);
+        }
+        
+        // Extract images if available
+        const images = extractAttachments(properties.Image);
         
         return {
           id: page.id,
           title,
-          description,
-          status,
-          priority,
-          date: date || new Date().toISOString(),
-          assignedTo,
-          category,
+          boxIds,
+          roomName,
+          images,
           url: page.url,
           lastUpdated: page.last_edited_time,
           properties: page.properties
@@ -260,23 +264,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract properties
       const properties = page.properties;
       const title = extractTitle(properties);
-      const description = extractRichText(properties.Description);
-      const status = extractSelect(properties.Status);
-      const priority = extractSelect(properties.Priority);
-      const date = extractDate(properties.Date);
-      const assignedTo = extractPerson(properties.AssignedTo);
-      const category = extractSelect(properties.Category);
       
-      // Get attachments if any
-      const attachments = extractAttachments(properties.Attachments);
+      // Extract Box relation if available
+      const boxRelations = properties.Box?.relation || [];
+      const boxIds = boxRelations.map((rel: any) => rel.id);
+      
+      // Extract Room relation if available
+      let roomName = "";
+      if (properties.Room?.rollup?.array?.[0]?.relation) {
+        roomName = extractRollupRelation(properties.Room);
+      }
+      
+      // Extract images if available
+      const images = extractAttachments(properties.Image);
+      
+      // Get additional attachments if any
+      const attachments = extractAttachments(properties.Attachments || {});
       
       // Process blocks to get full description if needed
-      let fullDescription = description || '';
+      let description = '';
       blocks.results.forEach(block => {
         if (block.type === 'paragraph') {
-          const paragraphText = block.paragraph?.rich_text?.map(text => text.plain_text).join('') || '';
+          const paragraphText = (block as any).paragraph?.rich_text?.map((text: any) => text.plain_text).join('') || '';
           if (paragraphText) {
-            fullDescription += fullDescription ? '\n\n' + paragraphText : paragraphText;
+            description += description ? '\n\n' + paragraphText : paragraphText;
           }
         }
       });
@@ -284,16 +295,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const item = {
         id: page.id,
         title,
-        description: fullDescription,
-        status,
-        priority,
-        date: date || new Date().toISOString(),
-        assignedTo,
-        category,
-        url: page.url,
-        lastUpdated: page.last_edited_time,
+        boxIds,
+        roomName,
+        description,
+        images,
+        url: (page as any).url,
+        lastUpdated: (page as any).last_edited_time,
         attachments,
-        properties: page.properties
+        properties: (page as any).properties
       };
       
       res.json(item);
@@ -362,4 +371,24 @@ function extractAttachments(property: any): Array<{ name: string, url: string }>
     name: file.name || 'Attachment',
     url: file.file?.url || file.external?.url || ''
   })).filter((file: any) => file.url);
+}
+
+function extractRollupRelation(property: any): string {
+  if (!property || property.type !== 'rollup' || !property.rollup) {
+    return '';
+  }
+  
+  // Handle rollup that contains relations
+  if (property.rollup.type === 'array' && property.rollup.array.length > 0) {
+    const relationItems = property.rollup.array
+      .filter((item: any) => item.type === 'relation' && item.relation && item.relation.length > 0)
+      .map((item: any) => item.relation)
+      .flat();
+    
+    if (relationItems.length > 0) {
+      return relationItems.map((rel: any) => rel.id || '').join(', ');
+    }
+  }
+  
+  return '';
 }
