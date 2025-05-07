@@ -18,27 +18,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(compression());
 
   // API routes
-  // Connect to Notion API
-  app.post('/api/notion/connect', async (req, res) => {
+  // Get database info
+  app.get('/api/notion/database-info', async (req, res) => {
     try {
-      // Validate request body
-      const credentials = notionConnectionSchema.parse(req.body);
+      // Use environment variables for Notion API credentials
+      const integrationToken = process.env.NOTION_TOKEN;
+      const databaseId = process.env.NOTION_DATABASE_ID;
       
-      // Initialize Notion client with the token
+      if (!integrationToken || !databaseId) {
+        return res.status(500).json({ 
+          success: false, 
+          message: "Server configuration error: Notion credentials missing" 
+        });
+      }
+      
+      // Initialize Notion client
       const notion = new NotionClient({
-        auth: credentials.integrationToken
+        auth: integrationToken
       });
       
-      // Verify access by retrieving database metadata
+      // Retrieve database metadata
       const database = await notion.databases.retrieve({
-        database_id: credentials.databaseId
+        database_id: databaseId
       });
-      
-      // For a real app with authentication, you'd store these credentials with the user
-      // Here we're just validating the connection
       
       res.json({
         success: true,
+        connected: true,
         database: {
           id: database.id,
           title: database.title?.[0]?.plain_text || "Notion Database",
@@ -46,16 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (err) {
-      console.error("Error connecting to Notion:", err);
-      
-      if (err instanceof ZodError) {
-        const validationError = fromZodError(err);
-        return res.status(400).json({ 
-          success: false, 
-          message: "Invalid input data", 
-          errors: validationError.details
-        });
-      }
+      console.error("Error fetching Notion database info:", err);
       
       // Handle Notion API errors
       const error = err as Error;
@@ -63,7 +60,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const message = error.message || "Failed to connect to Notion";
       
       res.status(status).json({ 
-        success: false, 
+        success: false,
+        connected: false,
         message
       });
     }
@@ -77,15 +75,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sort = req.query.sort ? JSON.parse(req.query.sort as string) : null;
       const search = req.query.search as string || '';
       
-      // In a real app, you'd use credentials from the authenticated user's session
-      // Here we'll check if the user has provided the token and database ID in headers
-      const integrationToken = req.headers['x-notion-token'] as string;
-      const databaseId = req.headers['x-notion-database-id'] as string;
+      // Use environment variables for Notion API credentials
+      const integrationToken = process.env.NOTION_TOKEN;
+      const databaseId = process.env.NOTION_DATABASE_ID;
       
       if (!integrationToken || !databaseId) {
-        return res.status(401).json({ 
+        return res.status(500).json({ 
           success: false, 
-          message: "Notion credentials required" 
+          message: "Server configuration error: Notion credentials missing" 
         });
       }
       
@@ -186,13 +183,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const pageId = req.params.id;
       
-      // In a real app, you'd use credentials from the authenticated user's session
-      const integrationToken = req.headers['x-notion-token'] as string;
+      // Use environment variables for Notion API credentials
+      const integrationToken = process.env.NOTION_TOKEN;
       
       if (!integrationToken) {
-        return res.status(401).json({ 
+        return res.status(500).json({ 
           success: false, 
-          message: "Notion credentials required" 
+          message: "Server configuration error: Notion token missing" 
         });
       }
       
