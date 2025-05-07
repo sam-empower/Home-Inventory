@@ -133,12 +133,6 @@ export class NotionAPIService implements NotionService {
 
       // Process results
       const items = await Promise.all(response.results.map(async page => {
-        // First extract the ID
-        const notionId = this.extractId(page.properties);
-        if (!notionId) {
-          console.warn('No ID found for page:', page.id);
-        }
-
         // Extract properties from the page
         const properties = page.properties;
 
@@ -157,22 +151,12 @@ export class NotionAPIService implements NotionService {
                                     this.findProperty(properties, 'Files', 'files');
         const attachments = this.extractAttachments(attachmentsProperty);
 
-        // Extract room and box information
-        const boxRelations = properties.Box?.relation || [];
-        const boxIds = boxRelations.map((rel: any) => rel.id);
-        
-        let roomName = "";
-        if (properties.Room?.rollup?.array?.[0]?.relation) {
-          roomName = this.extractRollupRelation(properties.Room);
-        }
-
+        const notionId = this.extractId(page.properties);
         const item: NotionDatabaseItem = {
-          id: String(notionId || page.id), // Ensure we convert number to string if numeric ID
+          id: notionId || page.id, // Fall back to page.id if no ID property
           notionPageId: page.id,
           databaseId,
           title,
-          boxIds,
-          roomName,
           description,
           status,
           priority,
@@ -385,18 +369,7 @@ export class NotionAPIService implements NotionService {
    */
   private extractId(properties: Record<string, any>): string | null {
     const idProperty = properties['ID'];
-    if (!idProperty) {
-      console.log('No ID property found');
-      return null;
-    }
-    console.log('Found ID property:', idProperty);
-    
-    if (idProperty.type === 'number') {
-      const numericId = idProperty.number;
-      console.log('Found numeric ID:', numericId);
-      return numericId !== null ? numericId.toString() : null;
-    }
-    if (idProperty.type === 'rich_text' && idProperty.rich_text.length > 0) {
+    if (idProperty && idProperty.type === 'rich_text' && idProperty.rich_text.length > 0) {
       return idProperty.rich_text[0].plain_text;
     }
     return null;
