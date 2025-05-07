@@ -85,40 +85,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         auth: integrationToken
       });
       
-      // Get all database items
-      const response = await notion.databases.query({
-        database_id: databaseId
+      // First, query all pages from the database
+      const pagesResponse = await notion.databases.query({
+        database_id: databaseId,
+        page_size: 100
       });
       
-      console.log(`Retrieved ${response.results.length} items from database`);
+      console.log(`Retrieved ${boxesResponse.results.length} boxes with Rooms relations`);
       
-      // Extract unique room names from items using rollup relation
-      const roomNames: Set<string> = new Set();
-      
-      for (const page of response.results) {
+      // Extract room IDs from box responses
+      const roomIds = new Set<string>();
+      for (const box of boxesResponse.results) {
         try {
-          const properties = (page as any).properties;
-          
-          // Extract Room rollup if available
-          let roomName = "";
-          if (properties && properties.Room?.rollup?.array?.[0]?.relation) {
-            roomName = extractRollupRelation(properties.Room);
-            if (roomName) {
-              roomNames.add(roomName);
+          const properties = (box as any).properties;
+          if (properties && properties.Rooms && properties.Rooms.relation) {
+            // Extract all room relations
+            for (const relation of properties.Rooms.relation) {
+              if (relation.id) {
+                roomIds.add(relation.id);
+              }
             }
           }
         } catch (error) {
-          console.error("Error extracting room name:", error);
+          console.error("Error extracting room relation:", error);
         }
       }
       
-      console.log(`Found ${roomNames.size} unique room names: ${Array.from(roomNames).join(', ')}`);
+      console.log(`Found ${roomIds.size} unique room IDs`);
       
-      // Convert to rooms array with placeholder IDs
-      const rooms = Array.from(roomNames).map(name => ({
-        id: name.replace(/\s+/g, '-').toLowerCase(), // generate a pseudo-id from name
-        name: name
-      }));
+      // Fetch room details for each ID
+      const roomsMap = new Map<string, { id: string, name: string }>();
+      for (const roomId of roomIds) {
+        try {
+          const roomPage = await notion.pages.retrieve({ page_id: roomId });
+          const properties = (roomPage as any).properties;
+          if (properties && properties.Name && properties.Name.title) {
+            const title = properties.Name.title.map((t: any) => t.plain_text).join('');
+            if (title) {
+              roomsMap.set(roomId, {
+                id: roomId,
+                name: title
+              });
+              console.log(`Found room: ${title}`);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching room ${roomId}:`, error);
+        }
+      }
+      
+      // Convert to array for response
+      const rooms = Array.from(roomsMap.values());
+      console.log(`Returning ${rooms.length} rooms`);
       
       res.json({ 
         success: true, 
@@ -322,11 +340,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply room filter client-side if needed
       if (filters.room) {
         console.log(`Filtering by room: ${filters.room}`);
-        filteredItems = filteredItems.filter(item => {
-          const match = item.roomName === filters.room;
-          console.log(`Item ${item.title}: roomName = ${item.roomName}, match = ${match}`);
-          return match;
+        
+        // To filter by room, we need to:
+        // 1. Get all boxes in the specified room
+        // 2. Filter items that are in those boxes
+        
+        // Step 1: Find box IDs in the specified room
+        const boxesInRoom = await notion.databases.query({
+          database_id: databaseId,
+          filter: {
+            and: [
+              {
+                property: "Rooms",
+                relation: {
+                  is_not_empty: true
+                }
+              }
+            ]
+          }
         });
+        
+        // Extract box IDs that are in the specified room
+        const boxIdsInRoom = new Set<string>();
+        for (const box of boxesInRoom.results) {
+          const properties = (box as any).properties;
+          // Check if this box is in the specified room
+          if (properties && properties.Rooms && properties.Rooms.relation) {
+            // We need to check each relation to see if it's for a room with the matching name
+            for (const relation of properties.Rooms.relation) {
+              try {
+                if (relation.id) {
+                  const roomPage = await notion.pages.retrieve({ page_id: relation.id });
+                  const roomName = extractTitle((roomPage as any).properties);
+                  if (roomName === filters.room) {
+                    boxIdsInRoom.add(box.id);
+                    console.log(`Box ${extractTitle((box as any).properties)} is in ${filters.room}`);
+                    break; // Stop checking once we find a match
+                  }
+                }
+              } catch (error) {
+                console.error("Error checking room name:", error);
+              }
+            }
+          }
+        }
+        
+        console.log(`Found ${boxIdsInRoom.size} boxes in room: ${filters.room}`);
+        
+        // Step 2: Filter items that are in boxes in the specified room
+        if (boxIdsInRoom.size > 0) {
+          filteredItems = filteredItems.filter(item => {
+            // Check if any of the item's boxes are in the specified room
+            const match = item.boxIds.some(boxId => boxIdsInRoom.has(boxId));
+            console.log(`Item ${item.title}: match = ${match}`);
+            return match;
+          });
+        } else {
+          // No boxes found in this room
+          filteredItems = [];
+        }
+        
         console.log(`Filtered to ${filteredItems.length} items`);
       }
       
