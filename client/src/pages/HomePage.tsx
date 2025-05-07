@@ -161,6 +161,7 @@ export default function HomePage() {
     // Handle each filter type appropriately
     Object.entries(newFilters).forEach(([key, value]) => {
       if (key === 'room' && value && value !== 'All') {
+        // Room name can be sent directly
         processedFilters.room = value;
       }
       else if (key === 'box' && value && value !== 'All') {
@@ -176,6 +177,9 @@ export default function HomePage() {
         processedFilters[key] = value;
       }
     });
+    
+    // Console log for debugging
+    console.log("Applied filters:", processedFilters);
     
     setFilters(processedFilters);
   }, [boxOptions]);
@@ -195,7 +199,11 @@ export default function HomePage() {
     try {
       const response = await notionRequest('GET', `/api/notion/database/${boxId}`);
       if (response && response.id && response.title) {
-        return { id: response.id, title: response.title };
+        return { 
+          id: response.id, 
+          title: response.title,
+          roomName: response.roomName || "" 
+        };
       }
       return null;
     } catch (error) {
@@ -207,60 +215,58 @@ export default function HomePage() {
   // Update filter options with available room and box values
   useEffect(() => {
     if (items && items.length > 0) {
-      // Collect unique room names
-      const rooms: Set<string> = new Set();
+      // Collect unique box IDs
       const boxIds: Set<string> = new Set();
       
-      // Get unique rooms and box IDs
+      // Get unique box IDs from items
       items.forEach(item => {
-        if (item.roomName) {
-          rooms.add(item.roomName);
-        }
-        
         if (item.boxIds && item.boxIds.length > 0) {
           item.boxIds.forEach(id => boxIds.add(id));
         }
       });
       
-      // Convert sets to arrays and update state
-      setRoomOptions(Array.from(rooms));
-      
-      // Update filter options for rooms
-      setFilterOptions(current => {
-        return current.map(filter => {
-          if (filter.id === 'room') {
-            return {
-              ...filter,
-              available: ['All', ...Array.from(rooms)]
-            };
-          }
-          return filter;
-        });
-      });
+      // We'll collect room names when we fetch box details
       
       // Fetch box details for each unique box ID
       const fetchBoxes = async () => {
         setIsLoadingBoxes(true);
         
         const boxMap: Record<string, string> = {};
-        const boxPromises = Array.from(boxIds).map(async (boxId) => {
-          const boxDetails = await fetchBoxDetails(boxId);
+        const rooms: Set<string> = new Set();
+        
+        // Collect box and room data
+        const boxDetailsArray = await Promise.all(
+          Array.from(boxIds).map(boxId => fetchBoxDetails(boxId))
+        );
+        
+        boxDetailsArray.forEach(boxDetails => {
           if (boxDetails) {
-            boxMap[boxId] = boxDetails.title;
+            // Store box id -> title mapping
+            boxMap[boxDetails.id] = boxDetails.title;
+            
+            // Collect room names
+            if (boxDetails.roomName) {
+              rooms.add(boxDetails.roomName);
+            }
           }
         });
         
-        await Promise.all(boxPromises);
-        
+        // Update state with both box and room data
         setBoxOptions(boxMap);
+        setRoomOptions(Array.from(rooms));
         
-        // Update filter options for boxes
+        // Update filter options for both boxes and rooms
         setFilterOptions(current => {
           return current.map(filter => {
             if (filter.id === 'box') {
               return {
                 ...filter,
                 available: ['All', ...Object.values(boxMap)]
+              };
+            } else if (filter.id === 'room') {
+              return {
+                ...filter,
+                available: ['All', ...Array.from(rooms)]
               };
             }
             return filter;
