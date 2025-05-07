@@ -51,17 +51,19 @@ export function SearchAndFilter({ onSearch, onFilter, filterOptions }: SearchAnd
     // Process each filter for the server
     Object.entries(activeFilters).forEach(([key, values]) => {
       if (values && values.length > 0) {
-        // We'll use the first value for now, since server just needs one
-        // For box filter, we need to find the boxId that corresponds to the name
-        if (key === 'box') {
-          // For now we use the first selected box only
-          serverFilters[key] = values[0];
-        } else if (key === 'room') {
-          // For room filter, use the exact room name
+        // For multi-select filters, we want to handle all selected options
+        // currently the server only supports the first value
+        // but we'll send the multi-select values one at a time
+        if (key === 'box' || key === 'room') {
+          // For now, we'll just use the first selected value
+          // Later this could be updated to support multiple values
           serverFilters[key] = values[0];
         } else {
           serverFilters[key] = values[0];
         }
+        
+        // Log all selected values for debugging
+        console.log(`Selected ${key} values:`, values);
       } else {
         serverFilters[key] = null;
       }

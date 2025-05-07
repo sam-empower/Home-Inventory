@@ -66,6 +66,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get rooms directly from Notion
+  app.get('/api/notion/rooms', async (req, res) => {
+    try {
+      // Use environment variables for Notion API credentials
+      const integrationToken = process.env.NOTION_TOKEN;
+      const databaseId = process.env.NOTION_DATABASE_ID;
+      
+      if (!integrationToken || !databaseId) {
+        return res.status(500).json({ 
+          success: false, 
+          message: "Server configuration error: Notion credentials missing" 
+        });
+      }
+      
+      // Initialize Notion client
+      const notion = new NotionClient({
+        auth: integrationToken
+      });
+      
+      // Query the boxes database to extract room relationships
+      const boxesQuery = await notion.databases.query({
+        database_id: databaseId,
+        filter: {
+          property: "Box",
+          relation: {
+            is_not_empty: true
+          }
+        }
+      });
+      
+      // Extract unique rooms from box responses
+      const roomsMap = new Map<string, { id: string, name: string }>();
+      
+      for (const page of boxesQuery.results) {
+        try {
+          // Check if this is a box with a Room relation
+          const properties = (page as any).properties;
+          if (properties && properties.Room?.relation && properties.Room.relation.length > 0) {
+            const roomId = properties.Room.relation[0].id;
+            
+            // If we haven't fetched this room yet, get its details
+            if (!roomsMap.has(roomId)) {
+              try {
+                const roomPage = await notion.pages.retrieve({ page_id: roomId });
+                
+                if ((roomPage as any).properties) {
+                  const roomName = extractTitle((roomPage as any).properties);
+                  roomsMap.set(roomId, { 
+                    id: roomId, 
+                    name: roomName 
+                  });
+                }
+              } catch (roomError) {
+                console.error("Error fetching room details:", roomError);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error processing box response:", error);
+        }
+      }
+      
+      // Convert Map to array
+      const rooms = Array.from(roomsMap.values());
+      
+      res.json({ 
+        success: true, 
+        rooms
+      });
+    } catch (err) {
+      console.error("Error fetching rooms:", err);
+      
+      // Handle Notion API errors
+      const error = err as Error;
+      const status = (err as any).status || 500;
+      const message = error.message || "Failed to fetch rooms";
+      
+      res.status(status).json({ 
+        success: false, 
+        message
+      });
+    }
+  });
+
   // Get database info
   app.get('/api/notion/database-info', async (req, res) => {
     try {

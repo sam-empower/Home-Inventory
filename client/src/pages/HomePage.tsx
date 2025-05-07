@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNotion } from "@/context/NotionContext";
 import { useNotionDatabase, useNotionDatabaseItem } from "@/hooks/useNotionDatabase";
 import { useNotionApi } from "@/hooks/useNotionApi";
+import { useNotionRooms } from "@/hooks/useNotionRooms";
 import { useSettings } from "@/hooks/useSettings";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { AppHeader } from "@/components/AppHeader";
@@ -161,13 +162,13 @@ export default function HomePage() {
     // Handle each filter type appropriately
     Object.entries(newFilters).forEach(([key, value]) => {
       if (key === 'room' && value && value !== 'All') {
-        // Room name can be sent directly
+        // Room name can be sent directly - it will be handled client-side
+        // in the server response filter logic
         processedFilters.room = value;
       }
       else if (key === 'box' && value && value !== 'All') {
         // For box filter, we need to find the box ID by title
-        // In multi-select scenario, we'll use just the first box for now
-        // until backend supports multiple boxes
+        // Find the box ID by name
         const boxId = Object.entries(boxOptions).find(([id, title]) => title === value)?.[0] || null;
         if (boxId) {
           processedFilters.box = boxId;
@@ -212,7 +213,35 @@ export default function HomePage() {
     }
   }, [notionRequest]);
   
-  // Update filter options with available room and box values
+  // Fetch rooms directly from API
+  const { 
+    data: rooms = [], 
+    isLoading: isLoadingRooms 
+  } = useNotionRooms();
+
+  // Update room filter options when rooms data is loaded
+  useEffect(() => {
+    if (rooms && rooms.length > 0) {
+      // Extract room names
+      const roomNames = rooms.map(room => room.name);
+      setRoomOptions(roomNames);
+
+      // Update filter options for rooms
+      setFilterOptions(current => {
+        return current.map(filter => {
+          if (filter.id === 'room') {
+            return {
+              ...filter,
+              available: ['All', ...roomNames]
+            };
+          }
+          return filter;
+        });
+      });
+    }
+  }, [rooms]);
+  
+  // Update box filter options based on items
   useEffect(() => {
     if (items && items.length > 0) {
       // Collect unique box IDs
@@ -225,16 +254,13 @@ export default function HomePage() {
         }
       });
       
-      // We'll collect room names when we fetch box details
-      
       // Fetch box details for each unique box ID
       const fetchBoxes = async () => {
         setIsLoadingBoxes(true);
         
         const boxMap: Record<string, string> = {};
-        const rooms: Set<string> = new Set();
         
-        // Collect box and room data
+        // Collect box data
         const boxDetailsArray = await Promise.all(
           Array.from(boxIds).map(boxId => fetchBoxDetails(boxId))
         );
@@ -243,30 +269,19 @@ export default function HomePage() {
           if (boxDetails) {
             // Store box id -> title mapping
             boxMap[boxDetails.id] = boxDetails.title;
-            
-            // Collect room names
-            if (boxDetails.roomName) {
-              rooms.add(boxDetails.roomName);
-            }
           }
         });
         
-        // Update state with both box and room data
+        // Update state with box data
         setBoxOptions(boxMap);
-        setRoomOptions(Array.from(rooms));
         
-        // Update filter options for both boxes and rooms
+        // Update filter options for boxes
         setFilterOptions(current => {
           return current.map(filter => {
             if (filter.id === 'box') {
               return {
                 ...filter,
                 available: ['All', ...Object.values(boxMap)]
-              };
-            } else if (filter.id === 'room') {
-              return {
-                ...filter,
-                available: ['All', ...Array.from(rooms)]
               };
             }
             return filter;
