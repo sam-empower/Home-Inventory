@@ -72,24 +72,26 @@ export default function HomePage() {
     };
   }, [isConnected, settings.autoRefresh, settings.refreshInterval, refreshData]);
   
-  // Pull-to-refresh setup
+  // Pull-to-refresh setup with improved iOS-like elasticity
   useEffect(() => {
+    // We'll implement a more subtle, iOS-like pull-to-refresh
     let touchStartY = 0;
-    const pullThreshold = 80;
+    const pullThreshold = 60; // Lower threshold for more natural feeling
     let isPulling = false;
     let indicator: HTMLDivElement | null = null;
+    let pullDistance = 0;
     
     const createIndicator = () => {
       if (indicator) return;
       
       indicator = document.createElement('div');
-      indicator.className = 'fixed top-0 left-0 right-0 h-16 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm transform -translate-y-full transition-transform z-50';
+      indicator.className = 'fixed top-0 left-0 right-0 h-12 flex items-center justify-center bg-transparent transform -translate-y-full transition-transform z-50';
       indicator.innerHTML = `
-        <div class="flex items-center">
-          <svg class="mr-2 h-5 w-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        <div class="flex items-center rounded-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-md px-4 py-1.5 shadow-sm">
+          <svg class="mr-2 h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          <span class="text-sm font-medium">Release to refresh</span>
+          <span class="text-xs font-medium">Release to refresh</span>
         </div>
       `;
       document.body.appendChild(indicator);
@@ -108,6 +110,7 @@ export default function HomePage() {
         createIndicator();
         touchStartY = e.touches[0].clientY;
         isPulling = true;
+        pullDistance = 0;
       }
     };
     
@@ -115,27 +118,36 @@ export default function HomePage() {
       if (!isPulling || !indicator) return;
       
       const touchY = e.touches[0].clientY;
-      const pullDistance = touchY - touchStartY;
+      pullDistance = touchY - touchStartY;
       
-      if (pullDistance > 0 && pullDistance < pullThreshold) {
-        const translateY = Math.round(pullDistance - pullThreshold);
+      // Apply resistance - the further you pull, the harder it gets
+      const dampedDistance = Math.pow(pullDistance, 0.8);
+      
+      if (pullDistance > 0) {
+        // Use a more elastic, dampened pull
+        const translateY = Math.min(dampedDistance - 40, 60);
         indicator.style.transform = `translateY(${translateY}px)`;
+        
+        // Only prevent default if we're actually pulling down
+        if (pullDistance > 10) {
+          e.preventDefault();
+        }
       }
     };
     
     const handleTouchEnd = (e: TouchEvent) => {
       if (!isPulling || !indicator) return;
       
-      const touchEndY = e.changedTouches[0].clientY;
-      const pullDistance = touchEndY - touchStartY;
-      
       if (pullDistance > pullThreshold) {
-        // Trigger refresh
+        // Trigger refresh with a spring-back animation
+        indicator.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.9, 0.1, 1.0)';
+        indicator.style.transform = 'translateY(-100%)';
         refreshData();
+      } else {
+        // Spring back animation
+        indicator.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.1, 1.0)';
+        indicator.style.transform = 'translateY(-100%)';
       }
-      
-      // Reset indicator position
-      indicator.style.transform = 'translateY(-100%)';
       
       // Remove indicator after animation
       setTimeout(removeIndicator, 300);
@@ -144,8 +156,9 @@ export default function HomePage() {
     
     // Only add event listeners if connected
     if (isConnected) {
+      // Use passive for touchstart but not for move to allow more natural scrolling
       document.addEventListener('touchstart', handleTouchStart, { passive: true });
-      document.addEventListener('touchmove', handleTouchMove, { passive: true });
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
       document.addEventListener('touchend', handleTouchEnd, { passive: true });
     }
     

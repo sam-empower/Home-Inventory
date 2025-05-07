@@ -59,8 +59,14 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Enables momentum scrolling on iOS devices */
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    overscroll-behavior-y: none; /* Prevents pull-to-refresh on mobile */
   }
 }
 
