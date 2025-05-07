@@ -94,7 +94,7 @@ export function DatabaseContent({
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map((item) => (
-            <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} />
+            <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} boxOptions={boxOptions} />
           ))}
         </div>
       </div>
@@ -105,7 +105,7 @@ export function DatabaseContent({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {items.map((item) => (
-        <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} />
+        <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} boxOptions={boxOptions} />
       ))}
     </div>
   );
@@ -129,7 +129,7 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
   
   // Get box name from boxOptions if available
   let boxName = 'Storage Box'; // Default value
-  if (hasBoxes && item.boxIds.length > 0) {
+  if (hasBoxes && item.boxIds && item.boxIds.length > 0) {
     const boxId = item.boxIds[0]; // Get the first box ID
     if (boxOptions[boxId]) {
       boxName = boxOptions[boxId]; // Use the box name from options

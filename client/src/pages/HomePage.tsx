@@ -334,6 +334,7 @@ export default function HomePage() {
               isLoading={isLoading}
               isRefetching={isRefetching}
               onItemClick={handleItemClick}
+              boxOptions={boxOptions}
             />
           </>
         )}
