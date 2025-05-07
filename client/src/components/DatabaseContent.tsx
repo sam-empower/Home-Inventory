@@ -12,13 +12,15 @@ interface DatabaseContentProps {
   isLoading: boolean;
   isRefetching: boolean;
   onItemClick: (id: string) => void;
+  boxOptions?: Record<string, string>;  // Added box options mapping
 }
 
 export function DatabaseContent({ 
   items, 
   isLoading, 
   isRefetching,
-  onItemClick 
+  onItemClick,
+  boxOptions = {} 
 }: DatabaseContentProps) {
   const { isOnline, isOfflineMode } = useOfflineMode();
   
@@ -41,14 +43,13 @@ export function DatabaseContent({
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <Card key={index} className="bg-white dark:bg-gray-800 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <Card key={index} className="bg-white dark:bg-gray-800 shadow-sm max-w-[200px]">
             <CardContent className="p-4">
               <div className="space-y-3">
                 <div className="flex justify-between items-start">
                   <Skeleton className="h-5 w-3/4 mb-2" />
-                  <Skeleton className="h-6 w-20" />
                 </div>
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-5/6" />
@@ -91,7 +92,7 @@ export function DatabaseContent({
           </div>
         </div>
         
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map((item) => (
             <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} />
           ))}
@@ -102,7 +103,7 @@ export function DatabaseContent({
 
   // Regular content
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {items.map((item) => (
         <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} />
       ))}
@@ -114,9 +115,10 @@ interface DatabaseItemCardProps {
   item: NotionDatabaseItem;
   onClick: (id: string) => void;
   getStatusColor: (status: string) => string;
+  boxOptions?: Record<string, string>;
 }
 
-function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardProps) {
+function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: DatabaseItemCardProps) {
   // Get first image if available
   const hasImage = !!(item.images && item.images.length > 0);
   const firstImage = hasImage ? item.images![0] : null;
@@ -125,13 +127,22 @@ function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardPro
   const roomName = item.roomName || 'No location';
   const hasBoxes = item.boxIds && item.boxIds.length > 0;
   
+  // Get box name from boxOptions if available
+  let boxName = 'Storage Box'; // Default value
+  if (hasBoxes && item.boxIds.length > 0) {
+    const boxId = item.boxIds[0]; // Get the first box ID
+    if (boxOptions[boxId]) {
+      boxName = boxOptions[boxId]; // Use the box name from options
+    }
+  }
+  
   return (
     <Card 
-      className="ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden mb-3"
+      className="ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden mb-3 max-w-[200px] mx-auto"
       onClick={() => onClick(item.id)}
     >
       {hasImage && (
-        <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <div className="relative w-full h-32 bg-gray-100 dark:bg-gray-700 overflow-hidden">
           <img 
             src={firstImage!.url} 
             alt={item.title || 'Item image'} 
@@ -147,45 +158,38 @@ function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardPro
         </div>
       )}
       
-      <CardContent className={`p-5 ${hasImage ? '' : 'pt-5'}`}>
+      <CardContent className={`p-4 ${hasImage ? '' : 'pt-4'}`}>
         <div className="flex justify-between items-start">
-          <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
+          <h3 className="font-semibold text-gray-900 dark:text-white text-base line-clamp-1">
             {item.title || 'Untitled'}
           </h3>
         </div>
         
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-1">
           {roomName !== 'No location' && (
-            <Badge className="ios-badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0 px-2.5 py-1">
+            <Badge className="ios-badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0 px-2 py-0.5 text-xs">
               {roomName}
             </Badge>
           )}
           
           {hasBoxes && (
-            <Badge className="ios-badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 px-2.5 py-1">
-              <Icons.database className="h-3 w-3 mr-1 inline-block" />
-              Box
+            <Badge className="ios-badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 px-2 py-0.5 text-xs">
+              <Icons.database className="h-2.5 w-2.5 mr-1 inline-block" />
+              {boxName}
             </Badge>
           )}
         </div>
         
         {item.description && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 line-clamp-2">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
             {item.description}
           </p>
         )}
         
-        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <div className="flex items-center">
-            <Icons.database className="h-3.5 w-3.5 text-primary mr-1" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              #{item.id.substring(0, 6)}
-            </span>
-          </div>
-          
+        <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end">
           {hasImage && (
-            <div className="flex items-center">
-              <Icons.file className="h-3.5 w-3.5 text-primary mr-1" />
+            <div className="flex items-center mr-auto">
+              <Icons.file className="h-3 w-3 text-primary mr-1" />
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 Photo
               </span>
@@ -193,7 +197,7 @@ function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardPro
           )}
           
           {/* iOS-style chevron indicator */}
-          <div className="h-4 w-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center ml-2">
+          <div className="h-4 w-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
             <Icons.plus className="h-2.5 w-2.5 text-gray-500 dark:text-gray-400 rotate-45" />
           </div>
         </div>
