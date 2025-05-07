@@ -96,4 +96,22 @@
   .ios-badge {
     @apply rounded-full text-xs font-medium px-2 py-0.5;
   }
+  
+  /* iOS-style checkbox */
+  [data-state="checked"].ios-checkbox {
+    @apply bg-primary border-primary;
+    animation: ios-checkbox-check 0.2s ease-in-out;
+  }
+  
+  @keyframes ios-checkbox-check {
+    0% {
+      transform: scale(0.8);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
 }

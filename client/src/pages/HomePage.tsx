@@ -165,6 +165,8 @@ export default function HomePage() {
       }
       else if (key === 'box' && value && value !== 'All') {
         // For box filter, we need to find the box ID by title
+        // In multi-select scenario, we'll use just the first box for now
+        // until backend supports multiple boxes
         const boxId = Object.entries(boxOptions).find(([id, title]) => title === value)?.[0] || null;
         if (boxId) {
           processedFilters.box = boxId;
