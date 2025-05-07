@@ -369,7 +369,10 @@ export class NotionAPIService implements NotionService {
    */
   private extractId(properties: Record<string, any>): string | null {
     const idProperty = properties['ID'];
-    if (idProperty && idProperty.type === 'rich_text' && idProperty.rich_text.length > 0) {
+    if (idProperty?.type === 'number' && idProperty.number !== null) {
+      return idProperty.number.toString();
+    }
+    if (idProperty?.type === 'rich_text' && idProperty.rich_text.length > 0) {
       return idProperty.rich_text[0].plain_text;
     }
     return null;
