@@ -17,18 +17,29 @@ export function useNotionApi() {
     data?: any
   ) => {
     if (!isConnected || !credentials) {
-      throw new Error('Not connected to Notion. Please provide valid credentials.');
+      console.log("Not connected to Notion or missing credentials");
+      return null;
     }
     
-    // Add credentials to the headers
-    const headers = {
-      'x-notion-token': credentials.integrationToken,
-      'x-notion-database-id': credentials.databaseId
-    };
-    
-    // Make the authenticated request
-    const response = await apiRequest(method, endpoint, data, { headers });
-    return response.json();
+    try {
+      // Add credentials to the headers
+      const headers = {
+        'x-notion-token': credentials.integrationToken,
+        'x-notion-database-id': credentials.databaseId
+      };
+      
+      console.log("Making authenticated request with headers:", {
+        token: credentials.integrationToken.substring(0, 4) + "...",
+        dbId: credentials.databaseId.substring(0, 4) + "..."
+      });
+      
+      // Make the authenticated request
+      const response = await apiRequest(method, endpoint, data, { headers });
+      return response.json();
+    } catch (error) {
+      console.error("Error in notionRequest:", error);
+      throw error;
+    }
   }, [credentials, isConnected]);
   
   return { 

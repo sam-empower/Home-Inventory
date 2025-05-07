@@ -35,15 +35,33 @@ export const NotionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Set credentials immediately to allow other hooks to use them
         setCredentials(parsed);
         setIsConnected(true);
+        setDatabaseInfo({title: "Saved Database"}); // Temporary placeholder until verified
         
-        // Then verify them with the server
-        connect(parsed, true).catch(() => {
-          // If reconnection fails, clear saved credentials
-          console.log("Auto-reconnection failed, clearing credentials");
-          setCredentials(null);
-          setIsConnected(false);
-          localStorage.removeItem('notionCredentials');
-        });
+        // Then verify them with the server in the background
+        // We don't wait for this to complete before setting isConnected
+        // to allow the UI to function immediately with saved credentials
+        const verifyConnection = async () => {
+          try {
+            console.log("Verifying saved credentials with server");
+            const response = await apiRequest('POST', '/api/notion/connect', parsed);
+            const data = await response.json();
+            console.log("Connection verified successfully:", data.database.title);
+            setDatabaseInfo(data.database);
+          } catch (error) {
+            console.error("Auto-reconnection failed, clearing credentials:", error);
+            toast({
+              variant: "destructive",
+              title: "Connection lost",
+              description: "Your Notion connection has expired. Please reconnect.",
+            });
+            setCredentials(null);
+            setIsConnected(false);
+            setDatabaseInfo(null);
+            localStorage.removeItem('notionCredentials');
+          }
+        };
+        
+        verifyConnection();
       } catch (error) {
         console.error("Error parsing saved credentials:", error);
         localStorage.removeItem('notionCredentials');
