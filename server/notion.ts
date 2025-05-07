@@ -157,12 +157,22 @@ export class NotionAPIService implements NotionService {
                                     this.findProperty(properties, 'Files', 'files');
         const attachments = this.extractAttachments(attachmentsProperty);
 
-        const notionId = this.extractId(page.properties);
+        // Extract room and box information
+        const boxRelations = properties.Box?.relation || [];
+        const boxIds = boxRelations.map((rel: any) => rel.id);
+        
+        let roomName = "";
+        if (properties.Room?.rollup?.array?.[0]?.relation) {
+          roomName = this.extractRollupRelation(properties.Room);
+        }
+
         const item: NotionDatabaseItem = {
           id: String(notionId || page.id), // Ensure we convert number to string if numeric ID
           notionPageId: page.id,
           databaseId,
           title,
+          boxIds,
+          roomName,
           description,
           status,
           priority,
@@ -375,12 +385,18 @@ export class NotionAPIService implements NotionService {
    */
   private extractId(properties: Record<string, any>): string | null {
     const idProperty = properties['ID'];
-    console.log('Extracting ID from properties:', { idProperty });
-    if (idProperty?.type === 'number' && idProperty.number !== null) {
-      console.log('Found numeric ID:', idProperty.number);
-      return idProperty.number.toString();
+    if (!idProperty) {
+      console.log('No ID property found');
+      return null;
     }
-    if (idProperty?.type === 'rich_text' && idProperty.rich_text.length > 0) {
+    console.log('Found ID property:', idProperty);
+    
+    if (idProperty.type === 'number') {
+      const numericId = idProperty.number;
+      console.log('Found numeric ID:', numericId);
+      return numericId !== null ? numericId.toString() : null;
+    }
+    if (idProperty.type === 'rich_text' && idProperty.rich_text.length > 0) {
       return idProperty.rich_text[0].plain_text;
     }
     return null;
