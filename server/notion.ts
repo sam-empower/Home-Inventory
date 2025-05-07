@@ -36,25 +36,25 @@ export class NotionAPIService implements NotionService {
       const notion = new Client({
         auth: integrationToken
       });
-      
+
       // Try to access the database to validate credentials
       const database = await notion.databases.retrieve({
         database_id: databaseId
       });
-      
+
       if (!database) {
         return {
           success: false,
           error: "Database not found"
         };
       }
-      
+
       // Extract database title 
       let title = "Notion Database";
       if (database.title && database.title.length > 0) {
         title = database.title.map(text => text.plain_text).join('');
       }
-      
+
       return {
         success: true,
         database: {
@@ -73,7 +73,7 @@ export class NotionAPIService implements NotionService {
       };
     }
   }
-  
+
   /**
    * Get all items from the specified Notion database with filtering and sorting
    */
@@ -88,13 +88,13 @@ export class NotionAPIService implements NotionService {
       const notion = new Client({
         auth: integrationToken
       });
-      
+
       // Build query parameters
       const queryParams: any = {
         database_id: databaseId,
         page_size: 100
       };
-      
+
       // Add sorting if provided
       if (sort) {
         queryParams.sorts = [{
@@ -102,14 +102,14 @@ export class NotionAPIService implements NotionService {
           direction: sort.direction
         }];
       }
-      
+
       // Add filters if provided
       if (Object.keys(filters).length > 0) {
         const filterConditions = [];
-        
+
         for (const [key, value] of Object.entries(filters)) {
           if (value === null) continue;
-          
+
           // Create filter condition based on property type
           // This is simplified - in a real app, you'd determine the property type
           // from the database schema and build the filter accordingly
@@ -120,22 +120,22 @@ export class NotionAPIService implements NotionService {
             }
           });
         }
-        
+
         if (filterConditions.length > 0) {
           queryParams.filter = {
             and: filterConditions
           };
         }
       }
-      
+
       // Query the database
       const response = await notion.databases.query(queryParams);
-      
+
       // Process results
       const items = await Promise.all(response.results.map(async page => {
         // Extract properties from the page
         const properties = page.properties;
-        
+
         // Extract common fields
         const title = this.extractTitle(properties);
         const description = this.extractRichText(this.findProperty(properties, 'Description', 'rich_text'));
@@ -145,14 +145,16 @@ export class NotionAPIService implements NotionService {
         const assignedTo = this.extractPerson(this.findProperty(properties, 'Assigned', 'people') || 
                                               this.findProperty(properties, 'AssignedTo', 'people'));
         const category = this.extractSelect(this.findProperty(properties, 'Category', 'select'));
-        
+
         // Check for attachments
         const attachmentsProperty = this.findProperty(properties, 'Attachments', 'files') ||
                                     this.findProperty(properties, 'Files', 'files');
         const attachments = this.extractAttachments(attachmentsProperty);
-        
+
+        const notionId = this.extractId(page.properties);
         const item: NotionDatabaseItem = {
-          id: page.id,
+          id: notionId || page.id, // Fall back to page.id if no ID property
+          notionPageId: page.id,
           databaseId,
           title,
           description,
@@ -166,10 +168,10 @@ export class NotionAPIService implements NotionService {
           properties: page.properties,
           attachments
         };
-        
+
         return item;
       }));
-      
+
       // Apply text search if provided
       if (search && search.trim() !== '') {
         const searchTerm = search.toLowerCase().trim();
@@ -178,14 +180,14 @@ export class NotionAPIService implements NotionService {
           (item.description && item.description.toLowerCase().includes(searchTerm))
         );
       }
-      
+
       return items;
     } catch (error) {
       console.error("Error fetching database items:", error);
       throw new Error(`Failed to fetch database items: ${error.message}`);
     }
   }
-  
+
   /**
    * Get a single item from Notion by page ID
    */
@@ -197,21 +199,21 @@ export class NotionAPIService implements NotionService {
       const notion = new Client({
         auth: integrationToken
       });
-      
+
       // Retrieve the page
       const page = await notion.pages.retrieve({
         page_id: pageId
       });
-      
+
       // Get page content blocks
       const blocks = await notion.blocks.children.list({
         block_id: pageId,
         page_size: 100
       });
-      
+
       // Extract properties
       const properties = page.properties;
-      
+
       const title = this.extractTitle(properties);
       const description = this.extractRichText(this.findProperty(properties, 'Description', 'rich_text'));
       const status = this.extractSelect(this.findProperty(properties, 'Status', 'select'));
@@ -220,29 +222,31 @@ export class NotionAPIService implements NotionService {
       const assignedTo = this.extractPerson(this.findProperty(properties, 'Assigned', 'people') || 
                                             this.findProperty(properties, 'AssignedTo', 'people'));
       const category = this.extractSelect(this.findProperty(properties, 'Category', 'select'));
-      
+
       // Check for attachments
       const attachmentsProperty = this.findProperty(properties, 'Attachments', 'files') ||
                                   this.findProperty(properties, 'Files', 'files');
       const attachments = this.extractAttachments(attachmentsProperty);
-      
+
       // Process blocks to get full description
       let fullDescription = description || '';
-      
+
       blocks.results.forEach(block => {
         if (block.type === 'paragraph' && block.paragraph) {
           const paragraphText = block.paragraph.rich_text
             ?.map(text => text.plain_text)
             .join('') || '';
-            
+
           if (paragraphText) {
             fullDescription += fullDescription ? '\n\n' + paragraphText : paragraphText;
           }
         }
       });
-      
+
+      const notionId = this.extractId(page.properties);
       const item: NotionDatabaseItem = {
-        id: page.id,
+        id: notionId || page.id, // Fall back to page.id if no ID property
+        notionPageId: page.id,
         databaseId: '', // We don't have this directly from the page, would be set from the query context
         title,
         description: fullDescription,
@@ -256,14 +260,14 @@ export class NotionAPIService implements NotionService {
         properties: page.properties,
         attachments
       };
-      
+
       return item;
     } catch (error) {
       console.error("Error fetching database item:", error);
       throw new Error(`Failed to fetch database item: ${error.message}`);
     }
   }
-  
+
   /**
    * Helper method to find a property by name or type
    */
@@ -272,7 +276,7 @@ export class NotionAPIService implements NotionService {
     if (properties[name] && properties[name].type === type) {
       return properties[name];
     }
-    
+
     // Try case-insensitive name match
     const nameLower = name.toLowerCase();
     for (const [key, value] of Object.entries(properties)) {
@@ -280,17 +284,17 @@ export class NotionAPIService implements NotionService {
         return value;
       }
     }
-    
+
     // Find first property of this type
     for (const value of Object.values(properties)) {
       if (value.type === type) {
         return value;
       }
     }
-    
+
     return null;
   }
-  
+
   /**
    * Extract title from properties
    */
@@ -303,7 +307,7 @@ export class NotionAPIService implements NotionService {
     }
     return 'Untitled';
   }
-  
+
   /**
    * Extract rich text content
    */
@@ -313,7 +317,7 @@ export class NotionAPIService implements NotionService {
     }
     return property.rich_text.map(text => text.plain_text).join('');
   }
-  
+
   /**
    * Extract select option value
    */
@@ -323,7 +327,7 @@ export class NotionAPIService implements NotionService {
     }
     return property.select.name || '';
   }
-  
+
   /**
    * Extract date value
    */
@@ -333,7 +337,7 @@ export class NotionAPIService implements NotionService {
     }
     return property.date.start || null;
   }
-  
+
   /**
    * Extract person assigned
    */
@@ -343,7 +347,7 @@ export class NotionAPIService implements NotionService {
     }
     return property.people[0].name || property.people[0].id || '';
   }
-  
+
   /**
    * Extract file attachments
    */
@@ -351,13 +355,24 @@ export class NotionAPIService implements NotionService {
     if (!property || property.type !== 'files' || !property.files.length) {
       return [];
     }
-    
+
     return property.files
       .map(file => ({
         name: file.name || 'Attachment',
         url: file.file?.url || file.external?.url || ''
       }))
       .filter(file => file.url);
+  }
+
+  /**
+   * Extracts the ID from the Notion properties.  Assumes ID is a text property.
+   */
+  private extractId(properties: Record<string, any>): string | null {
+    const idProperty = properties['ID'];
+    if (idProperty && idProperty.type === 'rich_text' && idProperty.rich_text.length > 0) {
+      return idProperty.rich_text[0].plain_text;
+    }
+    return null;
   }
 }
 

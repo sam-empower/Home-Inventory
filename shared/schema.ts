@@ -33,6 +33,7 @@ export type NotionDatabase = typeof notionDatabases.$inferSelect;
 // Notion Database Item model
 export const notionDatabaseItems = pgTable("notion_database_items", {
   id: text("id").primaryKey(),
+  notionPageId: text("notionPageId").notNull(),
   databaseId: text("databaseId").references(() => notionDatabases.id),
   title: text("title").notNull(),
   description: text("description"),

@@ -337,7 +337,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get a specific database item
   app.get('/api/notion/database/:id', async (req, res) => {
     try {
-      const pageId = req.params.id;
+      const items = await notionService.getDatabaseItems(integrationToken, databaseId);
+      const item = items.find(i => i.id === req.params.id);
+      if (!item) {
+        return res.status(404).json({ success: false, message: "Item not found" });
+      }
+      const pageId = item.notionPageId;
       
       // Use environment variables for Notion API credentials
       const integrationToken = process.env.NOTION_TOKEN;
