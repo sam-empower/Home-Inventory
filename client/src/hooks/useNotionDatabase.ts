@@ -47,7 +47,12 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
     }
     
     const endpoint = `/api/notion/database?${queryParams.toString()}`;
-    const response = await apiRequest('GET', endpoint);
+    const response = await apiRequest('GET', endpoint, null, {
+      headers: {
+        'x-notion-token': credentials.integrationToken,
+        'x-notion-database-id': credentials.databaseId
+      }
+    });
     const data = await response.json();
     
     // Cache the data for offline use
@@ -96,7 +101,12 @@ export function useNotionDatabaseItem(id: string | null) {
       throw new Error("No cached data available while offline");
     }
     
-    const response = await apiRequest('GET', `/api/notion/database/${id}`);
+    const response = await apiRequest('GET', `/api/notion/database/${id}`, null, {
+      headers: {
+        'x-notion-token': credentials.integrationToken,
+        'x-notion-database-id': credentials.databaseId
+      }
+    });
     const data = await response.json();
     
     // Cache the item for offline use
