@@ -67,6 +67,16 @@ export function ConnectionSetup({ isOpen, onClose }: ConnectionSetupProps) {
           </div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Connect to Notion</h2>
           <p className="text-gray-600 dark:text-gray-400 mt-2">Connect to your Notion workspace to access your databases</p>
+          
+          <div className="mt-4 text-left bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-sm">
+            <h3 className="font-medium text-gray-900 dark:text-white mb-2">Quick Setup Guide:</h3>
+            <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
+              <li>Create an integration at <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-primary underline">notion.so/my-integrations</a></li>
+              <li>Copy the integration token (starts with ntn_ or secret_)</li>
+              <li>Get your database ID from its URL</li>
+              <li>Share your database with your integration via the Share menu</li>
+            </ol>
+          </div>
         </div>
         
         <Form {...form}>
@@ -80,12 +90,12 @@ export function ConnectionSetup({ isOpen, onClose }: ConnectionSetupProps) {
                   <FormControl>
                     <Input 
                       type="password" 
-                      placeholder="secret_xxxxx..." 
+                      placeholder="ntn_xxxxxx... or secret_xxxxx..." 
                       {...field} 
                     />
                   </FormControl>
                   <FormDescription>
-                    Find this in your Notion integrations page
+                    Find this in your <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-primary underline">Notion integrations page</a>
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -105,7 +115,7 @@ export function ConnectionSetup({ isOpen, onClose }: ConnectionSetupProps) {
                     />
                   </FormControl>
                   <FormDescription>
-                    Found in your database URL
+                    Found in your database URL. After connecting, make sure to add your integration to the database's share menu.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

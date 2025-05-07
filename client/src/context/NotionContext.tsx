@@ -65,11 +65,35 @@ export const NotionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return true;
     } catch (error) {
       console.error("Failed to connect to Notion:", error);
-      toast({
-        variant: "destructive",
-        title: "Connection failed",
-        description: error instanceof Error ? error.message : "Could not connect to Notion",
-      });
+      
+      // Extract the error message
+      let errorMessage = "Could not connect to Notion";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Check for specific error messages and provide better guidance
+      if (errorMessage.includes("API token is invalid")) {
+        toast({
+          variant: "destructive",
+          title: "Invalid API Token",
+          description: "The integration token provided is not valid. Make sure you're using the token from your Notion integration settings.",
+        });
+      } else if (errorMessage.includes("Could not find database") || errorMessage.includes("shared with your integration")) {
+        toast({
+          variant: "destructive",
+          title: "Database access error",
+          description: "Make sure to share your database with your integration. Open your database, click Share, and add your integration to the access list.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Connection failed",
+          description: errorMessage,
+        });
+      }
+      
       return false;
     }
   };
