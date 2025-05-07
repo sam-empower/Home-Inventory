@@ -44,21 +44,21 @@ export function ItemDetailModal({ isOpen, onClose, item, isLoading }: ItemDetail
             <div>
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">ID</h4>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                {item.id || 'Not set'}
+                {item.notionId || 'Not set'}
               </p>
             </div>
 
             <div>
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Box</h4>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                {item.box || 'Not set'}
+                {item.boxIds?.join(', ') || 'Not set'}
               </p>
             </div>
 
             <div>
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Room</h4>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                {item.room || 'Not set'}
+                {item.roomName || 'Not set'}
               </p>
             </div>
           </div>

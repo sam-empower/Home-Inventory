@@ -408,20 +408,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get additional attachments if any
       const attachments = extractAttachments(properties.Attachments || {});
       
-      // Process blocks to get full description if needed
-      let description = '';
-      blocks.results.forEach(block => {
-        if (block.type === 'paragraph') {
-          const paragraphText = (block as any).paragraph?.rich_text?.map((text: any) => text.plain_text).join('') || '';
-          if (paragraphText) {
-            description += description ? '\n\n' + paragraphText : paragraphText;
-          }
-        }
-      });
-      
       // Extract the custom ID number from properties if available
       const notionId = extractId((page as any).properties);
       
+      // Process blocks and properties to get full description
+      let description = '';
+      
+      // 1. First check Description property if it exists
+      if ((page as any).properties.Description) {
+        const propertyDescription = extractRichText((page as any).properties.Description);
+        if (propertyDescription) {
+          description = propertyDescription;
+        }
+      }
+      
+      // 2. Then add any paragraph blocks found
+      blocks.results.forEach(block => {
+        if ((block as any).type === 'paragraph') {
+          const paragraphText = (block as any).paragraph?.rich_text?.map((text: any) => text.plain_text).join('') || '';
+          if (paragraphText) {
+            description = description ? description + '\n\n' + paragraphText : paragraphText;
+          }
+        }
+      });
+        
       const itemDetails = {
         id: page.id,
         title,
