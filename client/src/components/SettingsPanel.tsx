@@ -11,19 +11,14 @@ import { Icons } from "@/lib/icons";
 interface SettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  onShowConnectionSetup: () => void;
+  onShowConnectionSetup: () => void; // Keeping for compatibility, but not used anymore
 }
 
-export function SettingsPanel({ isOpen, onClose, onShowConnectionSetup }: SettingsPanelProps) {
-  const { isConnected, databaseInfo, disconnect } = useNotion();
+export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
+  const { isConnected, databaseInfo, refresh } = useNotion();
   const { theme, toggleTheme } = useTheme();
   const { isOfflineMode, toggleOfflineMode, clearCache } = useOfflineMode();
   const { settings, updateSettings, saveSettings } = useSettings();
-
-  const changeWorkspace = () => {
-    onClose();
-    onShowConnectionSetup();
-  };
 
   return (
     <div className={`fixed inset-0 z-40 transform transition-transform ${isOpen ? '' : 'translate-x-full'}`}>
@@ -49,35 +44,29 @@ export function SettingsPanel({ isOpen, onClose, onShowConnectionSetup }: Settin
               <div className="mt-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Workspace</p>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Status</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {isConnected ? "Connected" : "Not connected"}
+                      {isConnected ? "Connected to Notion" : "Not connected"}
                     </p>
                   </div>
                   <Button 
                     variant="link" 
-                    onClick={changeWorkspace}
+                    onClick={refresh}
                     className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium"
                   >
-                    {isConnected ? "Change" : "Connect"}
+                    Refresh
                   </Button>
                 </div>
                 
-                {isConnected && (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Database</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {databaseInfo?.title || "Unknown database"}
-                      </p>
-                    </div>
-                    <Button 
-                      variant="link" 
-                      onClick={changeWorkspace}
-                      className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium"
-                    >
-                      Change
-                    </Button>
+                {isConnected && databaseInfo && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Database</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {databaseInfo.title || "Notion Database"}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      Last synced: {new Date(databaseInfo.lastSynced).toLocaleString()}
+                    </p>
                   </div>
                 )}
               </div>
@@ -169,15 +158,6 @@ export function SettingsPanel({ isOpen, onClose, onShowConnectionSetup }: Settin
           
           <div className="border-t border-gray-200 dark:border-gray-700 py-4 px-4 sm:px-6">
             <div className="flex space-x-3">
-              {isConnected && (
-                <Button 
-                  variant="destructive"
-                  onClick={disconnect}
-                  className="flex-1"
-                >
-                  Disconnect
-                </Button>
-              )}
               <Button 
                 onClick={saveSettings}
                 className="flex-1"

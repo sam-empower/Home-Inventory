@@ -4,7 +4,6 @@ import { useNotionDatabase, useNotionDatabaseItem } from "@/hooks/useNotionDatab
 import { useSettings } from "@/hooks/useSettings";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { AppHeader } from "@/components/AppHeader";
-import { ConnectionSetup } from "@/components/ConnectionSetup";
 import { SearchAndFilter, FilterOption } from "@/components/SearchAndFilter";
 import { DatabaseContent } from "@/components/DatabaseContent";
 import { ItemDetailModal } from "@/components/ItemDetailModal";
@@ -13,9 +12,8 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { InstallPrompt } from "@/components/InstallPrompt";
 
 export default function HomePage() {
-  const { isConnected } = useNotion();
+  const { isConnected, isLoading: isConnectionLoading, refresh: refreshConnection } = useNotion();
   const { settings } = useSettings();
-  const [showConnectionSetup, setShowConnectionSetup] = useState(!isConnected);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, string | null>>({});
@@ -164,15 +162,16 @@ export default function HomePage() {
     setSelectedItemId(null);
   }, []);
   
-  useEffect(() => {
-    // Show connection setup if not connected
-    setShowConnectionSetup(!isConnected);
-  }, [isConnected]);
+  // Handle refresh data from app header
+  const handleRefreshData = useCallback(() => {
+    refreshConnection();
+    refreshData();
+  }, [refreshConnection, refreshData]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <AppHeader 
-        onRefreshData={refreshData}
+        onRefreshData={handleRefreshData}
         onOpenSettings={() => setIsSettingsOpen(true)}
         isRefreshing={isRefetching}
       />
@@ -195,31 +194,32 @@ export default function HomePage() {
           </>
         )}
         
-        {!isConnected && !showConnectionSetup && (
+        {!isConnected && (
           <div className="py-16 flex flex-col items-center justify-center">
             <div className="bg-primary-100 dark:bg-primary-900 rounded-full w-16 h-16 flex items-center justify-center mb-4">
               <svg className="h-8 w-8 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <h3 className="text-xl font-medium text-gray-900 dark:text-white">Connect to Notion</h3>
+            <h3 className="text-xl font-medium text-gray-900 dark:text-white">
+              {isConnectionLoading ? "Connecting to Notion..." : "Connection Error"}
+            </h3>
             <p className="text-gray-600 dark:text-gray-400 text-center mt-2 max-w-xs mb-4">
-              Connect to your Notion workspace to access your databases
+              {isConnectionLoading 
+                ? "Please wait while we connect to your Notion database" 
+                : "Unable to connect to the Notion database. Please check the server configuration."}
             </p>
-            <button 
-              className="mt-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-              onClick={() => setShowConnectionSetup(true)}
-            >
-              Connect
-            </button>
+            {!isConnectionLoading && (
+              <button 
+                className="mt-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                onClick={refreshConnection}
+              >
+                Retry Connection
+              </button>
+            )}
           </div>
         )}
       </main>
-      
-      <ConnectionSetup 
-        isOpen={showConnectionSetup}
-        onClose={() => setShowConnectionSetup(false)}
-      />
       
       <ItemDetailModal 
         isOpen={!!selectedItemId}
@@ -231,7 +231,7 @@ export default function HomePage() {
       <SettingsPanel 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        onShowConnectionSetup={() => setShowConnectionSetup(true)}
+        onShowConnectionSetup={() => {}}
       />
       
       <BottomNavigation />

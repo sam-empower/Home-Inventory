@@ -3,47 +3,38 @@ import { apiRequest } from '@/lib/queryClient';
 import { useNotion } from '@/context/NotionContext';
 
 /**
- * A custom hook to make authenticated API requests to the Notion API
+ * A custom hook to make API requests to the Notion API endpoints
  */
 export function useNotionApi() {
-  const { credentials, isConnected } = useNotion();
+  const { isConnected } = useNotion();
   
   /**
-   * Make an authenticated request to the Notion API
+   * Make a request to the Notion API endpoints
    */
   const notionRequest = useCallback(async (
     method: string, 
     endpoint: string, 
     data?: any
   ) => {
-    if (!isConnected || !credentials) {
-      console.log("Not connected to Notion or missing credentials");
+    if (!isConnected) {
+      console.log("Not connected to Notion");
       return null;
     }
     
     try {
-      // Add credentials to the headers
-      const headers = {
-        'x-notion-token': credentials.integrationToken,
-        'x-notion-database-id': credentials.databaseId
-      };
+      console.log(`Making request to ${endpoint}`);
       
-      console.log("Making authenticated request with headers:", {
-        token: credentials.integrationToken.substring(0, 4) + "...",
-        dbId: credentials.databaseId.substring(0, 4) + "..."
-      });
-      
-      // Make the authenticated request
-      const response = await apiRequest(method, endpoint, data, { headers });
+      // Make the request (auth handled server-side via environment variables)
+      const response = await apiRequest(method, endpoint, data);
       return response.json();
     } catch (error) {
       console.error("Error in notionRequest:", error);
       throw error;
     }
-  }, [credentials, isConnected]);
+  }, [isConnected]);
   
   return { 
     notionRequest,
-    isAuthenticated: isConnected && !!credentials 
+    isAuthenticated: isConnected
   };
 }

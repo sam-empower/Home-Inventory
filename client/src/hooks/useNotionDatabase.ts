@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { useNotion } from "@/context/NotionContext";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
@@ -13,16 +13,16 @@ interface UseNotionDatabaseOptions {
 }
 
 export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
-  const { isConnected, credentials } = useNotion();
+  const { isConnected, databaseInfo } = useNotion();
   const { isOfflineMode, getCachedData, setCachedData } = useOfflineMode();
   const { notionRequest, isAuthenticated } = useNotionApi();
   
   const { filters, sort, search } = options;
   
-  // Force reconnection when credentials change
+  // Force reconnection when database info changes
   useEffect(() => {
-    if (credentials) {
-      console.log("Credentials updated, triggering data refresh");
+    if (databaseInfo) {
+      console.log("Database info updated, triggering data refresh");
       
       // Wait a brief moment for all contexts to update, then refresh
       const timer = setTimeout(() => {
@@ -33,18 +33,21 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
       
       return () => clearTimeout(timer);
     }
-  }, [credentials]);
+  }, [databaseInfo]);
   
   const fetchDatabase = async (): Promise<NotionDatabaseItem[]> => {
-    if (!isAuthenticated || !credentials) {
+    if (!isAuthenticated) {
       return [];
     }
     
     // When offline, use cached data
     if (isOfflineMode) {
-      const cachedData = getCachedData(`database-${credentials.databaseId}`);
-      if (cachedData) {
-        return cachedData as NotionDatabaseItem[];
+      const databaseId = databaseInfo?.id;
+      if (databaseId) {
+        const cachedData = getCachedData(`database-${databaseId}`);
+        if (cachedData) {
+          return cachedData as NotionDatabaseItem[];
+        }
       }
       throw new Error("No cached data available while offline");
     }
@@ -68,14 +71,12 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
     const data = await notionRequest('GET', endpoint);
     
     // Cache the data for offline use
-    if (data && Array.isArray(data)) {
-      setCachedData(`database-${credentials.databaseId}`, data);
+    if (data && Array.isArray(data) && databaseInfo?.id) {
+      setCachedData(`database-${databaseInfo.id}`, data);
     }
     
     return data || [];
   };
-  
-  // No longer need separate headers object as it's handled by the notionRequest function
   
   const query = useQuery<NotionDatabaseItem[]>({
     queryKey: ['/api/notion/database', filters, sort, search],
@@ -100,12 +101,12 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
 }
 
 export function useNotionDatabaseItem(id: string | null) {
-  const { isConnected, credentials } = useNotion();
+  const { isConnected } = useNotion();
   const { isOfflineMode, getCachedData, setCachedData } = useOfflineMode();
   const { notionRequest, isAuthenticated } = useNotionApi();
   
   const fetchDatabaseItem = async (): Promise<NotionDatabaseItem | null> => {
-    if (!isAuthenticated || !credentials || !id) {
+    if (!isAuthenticated || !id) {
       return null;
     }
     
@@ -127,8 +128,6 @@ export function useNotionDatabaseItem(id: string | null) {
     
     return data;
   };
-  
-  // No longer need separate headers object as it's handled by the notionRequest function
   
   return useQuery<NotionDatabaseItem | null>({
     queryKey: ['/api/notion/database/item', id],
