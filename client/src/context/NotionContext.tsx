@@ -30,10 +30,18 @@ export const NotionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (savedCredentials) {
       try {
         const parsed = JSON.parse(savedCredentials) as NotionCredentials;
+        console.log("Auto-connecting with saved credentials");
         
-        // Auto-connect with saved credentials
+        // Set credentials immediately to allow other hooks to use them
+        setCredentials(parsed);
+        setIsConnected(true);
+        
+        // Then verify them with the server
         connect(parsed, true).catch(() => {
           // If reconnection fails, clear saved credentials
+          console.log("Auto-reconnection failed, clearing credentials");
+          setCredentials(null);
+          setIsConnected(false);
           localStorage.removeItem('notionCredentials');
         });
       } catch (error) {

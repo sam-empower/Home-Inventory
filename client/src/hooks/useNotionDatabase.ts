@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useNotion } from "@/context/NotionContext";
@@ -16,6 +17,22 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
   const { isOfflineMode, getCachedData, setCachedData } = useOfflineMode();
   
   const { filters, sort, search } = options;
+  
+  // Force reconnection when credentials change
+  useEffect(() => {
+    if (credentials) {
+      console.log("Credentials updated, triggering data refresh");
+      
+      // Wait a brief moment for all contexts to update, then refresh
+      const timer = setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['/api/notion/database'],
+        });
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [credentials]);
   
   const fetchDatabase = async (): Promise<NotionDatabaseItem[]> => {
     if (!isConnected || !credentials) {
