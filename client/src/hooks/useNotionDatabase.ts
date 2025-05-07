@@ -61,8 +61,14 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
     return data;
   };
   
+  // Create headers for authentication
+  const headers = credentials ? {
+    'x-notion-token': credentials.integrationToken,
+    'x-notion-database-id': credentials.databaseId
+  } : {};
+
   const query = useQuery<NotionDatabaseItem[]>({
-    queryKey: ['/api/notion/database', filters, sort, search],
+    queryKey: ['/api/notion/database', filters, headers, sort, search],
     queryFn: fetchDatabase,
     enabled: isConnected && !!credentials,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -71,7 +77,7 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
   const refreshMutation = useMutation({
     mutationFn: fetchDatabase,
     onSuccess: (data) => {
-      queryClient.setQueryData(['/api/notion/database', filters, sort, search], data);
+      queryClient.setQueryData(['/api/notion/database', filters, headers, sort, search], data);
     },
   });
 
@@ -115,8 +121,14 @@ export function useNotionDatabaseItem(id: string | null) {
     return data;
   };
   
+  // Create headers for authentication
+  const headers = credentials ? {
+    'x-notion-token': credentials.integrationToken,
+    'x-notion-database-id': credentials.databaseId
+  } : {};
+  
   return useQuery<NotionDatabaseItem | null>({
-    queryKey: ['/api/notion/database/item', id],
+    queryKey: ['/api/notion/database/item', id, headers],
     queryFn: fetchDatabaseItem,
     enabled: isConnected && !!credentials && !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes

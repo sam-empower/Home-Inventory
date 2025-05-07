@@ -148,12 +148,14 @@ function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardPro
           <div className="flex items-center">
             <Icons.calendar className="h-3 w-3 text-gray-400 mr-1" />
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {item.date ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}
             </span>
           </div>
           <div className="flex items-center">
             <Icons.user className="h-3 w-3 text-gray-400 mr-1" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">{item.assignedTo}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {item.assignedTo || 'Unassigned'}
+            </span>
           </div>
         </div>
       </CardContent>

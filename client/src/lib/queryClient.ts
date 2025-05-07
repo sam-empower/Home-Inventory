@@ -35,8 +35,12 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Note: queryKey[0] is the URL, and we can pass headers in queryKey[2] if available
+    const headers = queryKey[2] as Record<string, string> || {};
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
