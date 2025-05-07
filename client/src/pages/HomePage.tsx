@@ -24,7 +24,13 @@ export default function HomePage() {
   // Filter options for box and room
   const [filterOptions, setFilterOptions] = useState<FilterOption[]>([
     { id: "box", type: "box", name: "Box", value: null, available: [] },
-    { id: "room", type: "room", name: "Room", value: null, available: [] },
+    { 
+      id: "room", 
+      type: "room", 
+      name: "Room", 
+      value: null, 
+      available: ['All', 'Kitchen', 'Living Room', 'Bedroom 1', 'Bedroom 2', 'Garage', 'Attic', 'Bathroom']
+    },
   ]);
   
   // Track unique box and room values

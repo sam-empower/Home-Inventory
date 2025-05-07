@@ -85,51 +85,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         auth: integrationToken
       });
       
-      // Query the boxes database to extract room relationships
-      const boxesQuery = await notion.databases.query({
-        database_id: databaseId,
-        filter: {
-          property: "Box",
-          relation: {
-            is_not_empty: true
-          }
-        }
+      // Get all database items
+      const response = await notion.databases.query({
+        database_id: databaseId
       });
       
-      // Extract unique rooms from box responses
-      const roomsMap = new Map<string, { id: string, name: string }>();
+      console.log(`Retrieved ${response.results.length} items from database`);
       
-      for (const page of boxesQuery.results) {
+      // Extract unique room names from items using rollup relation
+      const roomNames: Set<string> = new Set();
+      
+      for (const page of response.results) {
         try {
-          // Check if this is a box with a Room relation
           const properties = (page as any).properties;
-          if (properties && properties.Room?.relation && properties.Room.relation.length > 0) {
-            const roomId = properties.Room.relation[0].id;
-            
-            // If we haven't fetched this room yet, get its details
-            if (!roomsMap.has(roomId)) {
-              try {
-                const roomPage = await notion.pages.retrieve({ page_id: roomId });
-                
-                if ((roomPage as any).properties) {
-                  const roomName = extractTitle((roomPage as any).properties);
-                  roomsMap.set(roomId, { 
-                    id: roomId, 
-                    name: roomName 
-                  });
-                }
-              } catch (roomError) {
-                console.error("Error fetching room details:", roomError);
-              }
+          
+          // Extract Room rollup if available
+          let roomName = "";
+          if (properties && properties.Room?.rollup?.array?.[0]?.relation) {
+            roomName = extractRollupRelation(properties.Room);
+            if (roomName) {
+              roomNames.add(roomName);
             }
           }
         } catch (error) {
-          console.error("Error processing box response:", error);
+          console.error("Error extracting room name:", error);
         }
       }
       
-      // Convert Map to array
-      const rooms = Array.from(roomsMap.values());
+      console.log(`Found ${roomNames.size} unique room names: ${Array.from(roomNames).join(', ')}`);
+      
+      // Convert to rooms array with placeholder IDs
+      const rooms = Array.from(roomNames).map(name => ({
+        id: name.replace(/\s+/g, '-').toLowerCase(), // generate a pseudo-id from name
+        name: name
+      }));
       
       res.json({ 
         success: true, 
@@ -332,9 +321,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Apply room filter client-side if needed
       if (filters.room) {
-        filteredItems = filteredItems.filter(item => 
-          item.roomName === filters.room
-        );
+        console.log(`Filtering by room: ${filters.room}`);
+        filteredItems = filteredItems.filter(item => {
+          const match = item.roomName === filters.room;
+          console.log(`Item ${item.title}: roomName = ${item.roomName}, match = ${match}`);
+          return match;
+        });
+        console.log(`Filtered to ${filteredItems.length} items`);
       }
       
       res.json(filteredItems);
