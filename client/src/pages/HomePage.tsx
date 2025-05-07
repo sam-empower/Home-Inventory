@@ -171,6 +171,7 @@ export default function HomePage() {
         // Room name can be sent directly - it will be handled client-side
         // in the server response filter logic
         processedFilters.room = value;
+        console.log(`Setting room filter to: ${value}`);
       }
       else if (key === 'box' && value && value !== 'All') {
         // For box filter, we need to find the box ID by title
@@ -244,6 +245,8 @@ export default function HomePage() {
           return filter;
         });
       });
+      
+      console.log("Updated room options from API:", roomNames);
     }
   }, [rooms]);
   
