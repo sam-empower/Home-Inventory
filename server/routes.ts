@@ -419,7 +419,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      const item = {
+      // Extract the custom ID number from properties if available
+      const notionId = extractId((page as any).properties);
+      
+      const itemDetails = {
         id: page.id,
         title,
         boxIds,
@@ -429,10 +432,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: (page as any).url,
         lastUpdated: (page as any).last_edited_time,
         attachments,
-        properties: (page as any).properties
+        properties: (page as any).properties,
+        notionId: notionId // Add the Notion ID property
       };
       
-      res.json(item);
+      res.json(itemDetails);
     } catch (err) {
       console.error("Error fetching database item:", err);
       
@@ -539,4 +543,33 @@ function extractRollupRelation(property: any): string {
   }
   
   return '';
+}
+
+/**
+ * Extracts the ID number from Notion properties
+ * Looks for a property called "ID" that contains a number
+ */
+function extractId(properties: any): string | null {
+  // Check if we have an ID property
+  if (properties.ID) {
+    // Could be rich_text or number type
+    if (properties.ID.type === 'rich_text' && properties.ID.rich_text.length > 0) {
+      return properties.ID.rich_text[0].plain_text;
+    } else if (properties.ID.type === 'number' && properties.ID.number !== null) {
+      return properties.ID.number.toString();
+    }
+  }
+  
+  // Try case-insensitive search for "id" property
+  for (const [key, value] of Object.entries(properties)) {
+    if (key.toLowerCase() === 'id') {
+      if (value.type === 'rich_text' && value.rich_text.length > 0) {
+        return value.rich_text[0].plain_text;
+      } else if (value.type === 'number' && value.number !== null) {
+        return value.number.toString();
+      }
+    }
+  }
+  
+  return null;
 }
