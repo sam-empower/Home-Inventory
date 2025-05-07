@@ -400,6 +400,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const boxRelations = properties.Box?.relation || [];
       const boxIds = boxRelations.map((rel: any) => rel.id);
       
+      // For each box ID, fetch the box name
+      let boxNames: string[] = [];
+      if (boxIds.length > 0) {
+        try {
+          // Get box names by fetching each box
+          const boxPromises = boxIds.map(async (boxId: string) => {
+            try {
+              const boxPage = await notion.pages.retrieve({ page_id: boxId });
+              return extractTitle((boxPage as any).properties);
+            } catch (error) {
+              console.error(`Error fetching box details for ${boxId}:`, error);
+              return boxId; // Fallback to ID if we can't get the name
+            }
+          });
+          
+          boxNames = await Promise.all(boxPromises);
+        } catch (error) {
+          console.error("Error fetching box names:", error);
+        }
+      }
+      
       // Extract images if available
       const images = extractAttachments(properties.Image);
       
@@ -407,7 +428,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const attachments = extractAttachments(properties.Attachments || {});
       
       // Extract the custom ID number from properties if available
-      const notionId = extractId((page as any).properties);
+      let notionId = extractId((page as any).properties);
+      
+      // Also check for unique_id type
+      if (!notionId && properties.ID?.type === 'unique_id' && properties.ID.unique_id?.number) {
+        notionId = properties.ID.unique_id.number.toString();
+      }
       
       // Process blocks and properties to get full description
       let description = '';
@@ -434,6 +460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: page.id,
         title,
         boxIds,
+        boxNames,
         roomName,
         description,
         images,

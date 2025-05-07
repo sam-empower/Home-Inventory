@@ -53,6 +53,7 @@ export type NotionDatabaseItem = typeof notionDatabaseItems.$inferSelect & {
   attachments?: Array<{ name: string, url: string }>,
   images?: Array<{ name: string, url: string }>,
   boxIds?: string[],
+  boxNames?: string[],  // Added to store box names
   roomName?: string,
   notionId?: string // Notion's internal ID value (e.g., "92")
 };
