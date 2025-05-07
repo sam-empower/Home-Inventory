@@ -133,6 +133,12 @@ export class NotionAPIService implements NotionService {
 
       // Process results
       const items = await Promise.all(response.results.map(async page => {
+        // First extract the ID
+        const notionId = this.extractId(page.properties);
+        if (!notionId) {
+          console.warn('No ID found for page:', page.id);
+        }
+
         // Extract properties from the page
         const properties = page.properties;
 
@@ -153,7 +159,7 @@ export class NotionAPIService implements NotionService {
 
         const notionId = this.extractId(page.properties);
         const item: NotionDatabaseItem = {
-          id: notionId || page.id, // Fall back to page.id if no ID property
+          id: String(notionId || page.id), // Ensure we convert number to string if numeric ID
           notionPageId: page.id,
           databaseId,
           title,
@@ -369,7 +375,9 @@ export class NotionAPIService implements NotionService {
    */
   private extractId(properties: Record<string, any>): string | null {
     const idProperty = properties['ID'];
+    console.log('Extracting ID from properties:', { idProperty });
     if (idProperty?.type === 'number' && idProperty.number !== null) {
+      console.log('Found numeric ID:', idProperty.number);
       return idProperty.number.toString();
     }
     if (idProperty?.type === 'rich_text' && idProperty.rich_text.length > 0) {
