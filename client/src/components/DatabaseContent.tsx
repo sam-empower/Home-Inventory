@@ -43,9 +43,9 @@ export function DatabaseContent({
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {Array.from({ length: 8 }).map((_, index) => (
-          <Card key={index} className="bg-white dark:bg-gray-800 shadow-sm max-w-[200px]">
+          <Card key={index} className="bg-white dark:bg-gray-800 shadow-sm max-w-[200px] mx-auto h-44">
             <CardContent className="p-4">
               <div className="space-y-3">
                 <div className="flex justify-between items-start">
@@ -92,7 +92,7 @@ export function DatabaseContent({
           </div>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map((item) => (
             <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} boxOptions={boxOptions} />
           ))}
@@ -103,7 +103,7 @@ export function DatabaseContent({
 
   // Regular content
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {items.map((item) => (
         <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} boxOptions={boxOptions} />
       ))}
@@ -138,11 +138,11 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
   
   return (
     <Card 
-      className="ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden mb-3 max-w-[200px] mx-auto"
+      className="ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden w-full max-w-[200px] h-[180px] mx-auto flex flex-col"
       onClick={() => onClick(item.id)}
     >
-      {hasImage && (
-        <div className="relative w-full h-32 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+      {hasImage ? (
+        <div className="relative w-full h-24 bg-gray-100 dark:bg-gray-700 overflow-hidden shrink-0">
           <img 
             src={firstImage!.url} 
             alt={item.title || 'Item image'} 
@@ -154,39 +154,35 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
           />
           
           {/* iOS-style image overlay gradient */}
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
         </div>
+      ) : (
+        <div className="h-2 shrink-0" />
       )}
       
-      <CardContent className={`p-4 ${hasImage ? '' : 'pt-4'}`}>
-        <div className="flex justify-between items-start">
-          <h3 className="font-semibold text-gray-900 dark:text-white text-base line-clamp-1">
+      <CardContent className="p-3 flex-1 flex flex-col justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-1">
             {item.title || 'Untitled'}
           </h3>
-        </div>
-        
-        <div className="mt-2 flex flex-wrap gap-1">
-          {roomName !== 'No location' && (
-            <Badge className="ios-badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0 px-2 py-0.5 text-xs">
-              {roomName}
-            </Badge>
-          )}
           
-          {hasBoxes && (
-            <Badge className="ios-badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 px-2 py-0.5 text-xs">
-              <Icons.database className="h-2.5 w-2.5 mr-1 inline-block" />
-              {boxName}
-            </Badge>
-          )}
+          <div className="mt-1 flex flex-wrap gap-1">
+            {roomName !== 'No location' && (
+              <Badge className="ios-badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0 px-2 py-0.5 text-xs">
+                {roomName}
+              </Badge>
+            )}
+            
+            {hasBoxes && (
+              <Badge className="ios-badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 px-2 py-0.5 text-xs">
+                <Icons.database className="h-2.5 w-2.5 mr-1 inline-block" />
+                {boxName}
+              </Badge>
+            )}
+          </div>
         </div>
         
-        {item.description && (
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
-            {item.description}
-          </p>
-        )}
-        
-        <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end">
+        <div className="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end">
           {hasImage && (
             <div className="flex items-center mr-auto">
               <Icons.file className="h-3 w-3 text-primary mr-1" />
