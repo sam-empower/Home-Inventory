@@ -72,10 +72,35 @@ export function ConnectionSetup({ isOpen, onClose }: ConnectionSetupProps) {
             <h3 className="font-medium text-gray-900 dark:text-white mb-2">Quick Setup Guide:</h3>
             <ol className="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400">
               <li>Create an integration at <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-primary underline">notion.so/my-integrations</a></li>
-              <li>Copy the integration token (starts with ntn_ or secret_)</li>
-              <li>Get your database ID from its URL</li>
-              <li>Share your database with your integration via the Share menu</li>
+              <li>Copy the integration token (starts with <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">ntn_</code> or <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">secret_</code>)</li>
+              <li>Get your database ID from its URL, the part after the last slash and before the question mark</li>
+              <li>Share your database with your integration via the Share menu and add your integration name</li>
             </ol>
+            
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <details className="group">
+                <summary className="flex items-center text-primary-600 dark:text-primary-400 cursor-pointer font-medium">
+                  <svg className="h-4 w-4 mr-1 group-open:rotate-90 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                  Troubleshooting
+                </summary>
+                <div className="mt-2 pl-5 text-gray-600 dark:text-gray-400">
+                  <p className="mb-1 text-xs">If you get "API token is invalid" error:</p>
+                  <ul className="list-disc list-inside text-xs space-y-1 pl-1">
+                    <li>Check if your token starts with <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">ntn_</code> or <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">secret_</code></li>
+                    <li>Make sure you copied the entire token without extra spaces</li>
+                  </ul>
+                  
+                  <p className="mb-1 mt-2 text-xs">If you get "Database not found" error:</p>
+                  <ul className="list-disc list-inside text-xs space-y-1 pl-1">
+                    <li>Ensure the database ID is correct (from URL)</li>
+                    <li>Verify you've shared the database with your integration</li>
+                    <li>Remember to click "Save" after adding your integration in the share menu</li>
+                  </ul>
+                </div>
+              </details>
+            </div>
           </div>
         </div>
         
