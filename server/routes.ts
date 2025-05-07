@@ -18,6 +18,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(compression());
 
   // API routes
+  // Legacy endpoint that now returns a proper JSON response 
+  // directing to use the database-info endpoint instead
+  app.post('/api/notion/connect', async (req, res) => {
+    try {
+      // Use environment variables for Notion API credentials
+      const integrationToken = process.env.NOTION_TOKEN;
+      const databaseId = process.env.NOTION_DATABASE_ID;
+      
+      if (!integrationToken || !databaseId) {
+        return res.status(500).json({ 
+          success: false, 
+          message: "Server configuration error: Notion credentials missing" 
+        });
+      }
+      
+      // Initialize Notion client
+      const notion = new NotionClient({
+        auth: integrationToken
+      });
+      
+      // Retrieve database metadata
+      const database = await notion.databases.retrieve({
+        database_id: databaseId
+      });
+      
+      res.json({
+        success: true,
+        database: {
+          id: database.id,
+          title: database.title?.[0]?.plain_text || "Notion Database",
+          lastSynced: new Date().toISOString()
+        }
+      });
+    } catch (err) {
+      console.error("Error in legacy connect endpoint:", err);
+      
+      // Handle Notion API errors
+      const error = err as Error;
+      const status = (err as any).status || 500;
+      const message = error.message || "Failed to connect to Notion";
+      
+      res.status(status).json({ 
+        success: false, 
+        message
+      });
+    }
+  });
+  
   // Get database info
   app.get('/api/notion/database-info', async (req, res) => {
     try {
