@@ -182,7 +182,7 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
           </div>
         </div>
         
-        <div className="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end">
+        <div className="mt-auto pt-2 flex items-center justify-end">
           {/* Empty footer to maintain spacing */}
         </div>
       </CardContent>
