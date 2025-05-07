@@ -155,16 +155,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add filters if provided
       if (Object.keys(filters).length > 0) {
-        queryParams.filter = {
-          and: Object.entries(filters)
-            .filter(([_, value]) => value !== null)
-            .map(([key, value]) => ({
-              property: key,
-              [typeof value === 'string' ? 'rich_text' : 'checkbox']: {
-                equals: value
-              }
-            }))
-        };
+        const filterConditions = Object.entries(filters)
+          .filter(([_, value]) => value !== null)
+          .map(([key, value]) => {
+            // Special case for box filter
+            if (key === 'box') {
+              return {
+                property: 'Box',
+                relation: {
+                  contains: value as string
+                }
+              };
+            }
+            // Special case for room filter (since it's a rollup property)
+            else if (key === 'room') {
+              // For rooms, we need to filter client-side after fetching
+              // This is a placeholder to indicate we want a room filter
+              return {
+                property: 'Name', // Use a property that always exists as a placeholder
+                title: {
+                  is_not_empty: true
+                }
+              };
+            }
+            // Normal text-based filters
+            else {
+              return {
+                property: key,
+                [typeof value === 'string' ? 'rich_text' : 'checkbox']: {
+                  equals: value
+                }
+              };
+            }
+          });
+        
+        if (filterConditions.length > 0) {
+          queryParams.filter = {
+            and: filterConditions
+          };
+        }
       }
       
       // Add search if provided
@@ -206,13 +235,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
+      // Apply post-processing filters
+      let filteredItems = items;
+      
       // Filter by search term if provided
-      const filteredItems = search 
-        ? items.filter(item => 
-            item.title.toLowerCase().includes(search.toLowerCase()) || 
-            (item.description && item.description.toLowerCase().includes(search.toLowerCase()))
-          )
-        : items;
+      if (search) {
+        filteredItems = filteredItems.filter(item => 
+          item.title.toLowerCase().includes(search.toLowerCase()) || 
+          (item.description && item.description.toLowerCase().includes(search.toLowerCase()))
+        );
+      }
+      
+      // Apply room filter client-side if needed
+      if (filters.room) {
+        filteredItems = filteredItems.filter(item => 
+          item.roomName === filters.room
+        );
+      }
       
       res.json(filteredItems);
     } catch (err) {

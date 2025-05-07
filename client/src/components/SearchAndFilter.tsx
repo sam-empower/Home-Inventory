@@ -91,9 +91,9 @@ export function SearchAndFilter({ onSearch, onFilter, filterOptions }: SearchAnd
             placeholder="Search items..."
             value={searchTerm}
             onChange={handleSearchChange}
-            className="pl-10 pr-4 py-2 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus-visible:ring-2 focus-visible:ring-primary"
+            className="pl-10 pr-4 py-2.5 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-100/80 dark:bg-gray-800/80 focus-visible:ring-2 focus-visible:ring-primary placeholder:text-gray-500"
           />
-          <Icons.search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <Icons.search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
         </div>
         
         <div className="flex items-center space-x-2 overflow-x-auto py-1 scrollbar-hide">
