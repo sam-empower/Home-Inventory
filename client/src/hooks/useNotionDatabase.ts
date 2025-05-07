@@ -1,9 +1,9 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { apiRequest } from "@/lib/queryClient";
+import { useCallback, useEffect } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { useNotion } from "@/context/NotionContext";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
+import { useNotionApi } from "@/hooks/useNotionApi";
 import { NotionDatabaseItem } from "@shared/schema";
 
 interface UseNotionDatabaseOptions {
@@ -15,6 +15,7 @@ interface UseNotionDatabaseOptions {
 export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
   const { isConnected, credentials } = useNotion();
   const { isOfflineMode, getCachedData, setCachedData } = useOfflineMode();
+  const { notionRequest, isAuthenticated } = useNotionApi();
   
   const { filters, sort, search } = options;
   
@@ -35,7 +36,7 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
   }, [credentials]);
   
   const fetchDatabase = async (): Promise<NotionDatabaseItem[]> => {
-    if (!isConnected || !credentials) {
+    if (!isAuthenticated || !credentials) {
       return [];
     }
     
@@ -64,37 +65,29 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
     }
     
     const endpoint = `/api/notion/database?${queryParams.toString()}`;
-    const response = await apiRequest('GET', endpoint, null, {
-      headers: {
-        'x-notion-token': credentials.integrationToken,
-        'x-notion-database-id': credentials.databaseId
-      }
-    });
-    const data = await response.json();
+    const data = await notionRequest('GET', endpoint);
     
     // Cache the data for offline use
-    setCachedData(`database-${credentials.databaseId}`, data);
+    if (data && Array.isArray(data)) {
+      setCachedData(`database-${credentials.databaseId}`, data);
+    }
     
-    return data;
+    return data || [];
   };
   
-  // Create headers for authentication
-  const headers = credentials ? {
-    'x-notion-token': credentials.integrationToken,
-    'x-notion-database-id': credentials.databaseId
-  } : {};
-
+  // No longer need separate headers object as it's handled by the notionRequest function
+  
   const query = useQuery<NotionDatabaseItem[]>({
-    queryKey: ['/api/notion/database', filters, headers, sort, search],
+    queryKey: ['/api/notion/database', filters, sort, search],
     queryFn: fetchDatabase,
-    enabled: isConnected && !!credentials,
+    enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
   
   const refreshMutation = useMutation({
     mutationFn: fetchDatabase,
     onSuccess: (data) => {
-      queryClient.setQueryData(['/api/notion/database', filters, headers, sort, search], data);
+      queryClient.setQueryData(['/api/notion/database', filters, sort, search], data);
     },
   });
 
@@ -109,9 +102,10 @@ export function useNotionDatabase(options: UseNotionDatabaseOptions = {}) {
 export function useNotionDatabaseItem(id: string | null) {
   const { isConnected, credentials } = useNotion();
   const { isOfflineMode, getCachedData, setCachedData } = useOfflineMode();
+  const { notionRequest, isAuthenticated } = useNotionApi();
   
   const fetchDatabaseItem = async (): Promise<NotionDatabaseItem | null> => {
-    if (!isConnected || !credentials || !id) {
+    if (!isAuthenticated || !credentials || !id) {
       return null;
     }
     
@@ -124,30 +118,22 @@ export function useNotionDatabaseItem(id: string | null) {
       throw new Error("No cached data available while offline");
     }
     
-    const response = await apiRequest('GET', `/api/notion/database/${id}`, null, {
-      headers: {
-        'x-notion-token': credentials.integrationToken,
-        'x-notion-database-id': credentials.databaseId
-      }
-    });
-    const data = await response.json();
+    const data = await notionRequest('GET', `/api/notion/database/${id}`);
     
     // Cache the item for offline use
-    setCachedData(`database-item-${id}`, data);
+    if (data) {
+      setCachedData(`database-item-${id}`, data);
+    }
     
     return data;
   };
   
-  // Create headers for authentication
-  const headers = credentials ? {
-    'x-notion-token': credentials.integrationToken,
-    'x-notion-database-id': credentials.databaseId
-  } : {};
+  // No longer need separate headers object as it's handled by the notionRequest function
   
   return useQuery<NotionDatabaseItem | null>({
-    queryKey: ['/api/notion/database/item', id, headers],
+    queryKey: ['/api/notion/database/item', id],
     queryFn: fetchDatabaseItem,
-    enabled: isConnected && !!credentials && !!id,
+    enabled: isAuthenticated && !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
