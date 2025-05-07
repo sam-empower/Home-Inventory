@@ -304,15 +304,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const properties = page.properties;
       const title = extractTitle(properties);
       
-      // Extract Box relation if available
-      const boxRelations = properties.Box?.relation || [];
-      const boxIds = boxRelations.map((rel: any) => rel.id);
-      
-      // Extract Room relation if available
+      // If this is a box, look for room property
+      let roomId = "";
       let roomName = "";
-      if (properties.Room?.rollup?.array?.[0]?.relation) {
+      
+      if (properties.Room?.relation && properties.Room.relation.length > 0) {
+        // This is a direct room relation (for boxes)
+        roomId = properties.Room.relation[0].id;
+        
+        try {
+          // Get the room name by fetching the room page
+          const roomPage = await notion.pages.retrieve({ page_id: roomId });
+          if (roomPage.properties) {
+            roomName = extractTitle(roomPage.properties);
+          }
+        } catch (error) {
+          console.error("Error fetching room details:", error);
+        }
+      }
+      
+      // If no direct room relation, check for rollup (for items)
+      if (!roomName && properties.Room?.rollup?.array?.[0]?.relation) {
         roomName = extractRollupRelation(properties.Room);
       }
+      
+      // Extract Box relation if available (for items)
+      const boxRelations = properties.Box?.relation || [];
+      const boxIds = boxRelations.map((rel: any) => rel.id);
       
       // Extract images if available
       const images = extractAttachments(properties.Image);
@@ -425,7 +443,28 @@ function extractRollupRelation(property: any): string {
       .flat();
     
     if (relationItems.length > 0) {
+      // If we have title values in the rollup, use those (room names)
+      if (property.rollup.array[0].title) {
+        return property.rollup.array
+          .filter((item: any) => item.title && item.title.length > 0)
+          .map((item: any) => item.title.map((t: any) => t.plain_text).join(''))
+          .join(', ');
+      }
+      
+      // Otherwise just return the relation IDs
       return relationItems.map((rel: any) => rel.id || '').join(', ');
+    }
+  }
+  
+  // Handle rollup that contains titles directly
+  if (property.rollup.type === 'array' && property.rollup.array.length > 0) {
+    const titleItems = property.rollup.array
+      .filter((item: any) => item.type === 'title' && item.title && item.title.length > 0);
+    
+    if (titleItems.length > 0) {
+      return titleItems
+        .map((item: any) => item.title.map((t: any) => t.plain_text).join(''))
+        .join(', ');
     }
   }
   
