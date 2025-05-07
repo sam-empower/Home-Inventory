@@ -117,7 +117,7 @@ interface DatabaseItemCardProps {
 }
 
 function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardProps) {
-  const statusColor = getStatusColor(item.status);
+  const statusColor = getStatusColor(item.status || "");
   
   // Map status color to badge variant
   const getBadgeVariant = (color: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -136,13 +136,13 @@ function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardPro
     >
       <CardContent className="p-4">
         <div className="flex justify-between items-start">
-          <h3 className="font-medium text-gray-900 dark:text-white">{item.title}</h3>
+          <h3 className="font-medium text-gray-900 dark:text-white">{item.title || 'Untitled'}</h3>
           <Badge variant={getBadgeVariant(statusColor)} className="px-2 py-1 text-xs font-medium">
-            {item.status}
+            {item.status || 'No Status'}
           </Badge>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-          {item.description}
+          {item.description || 'No description'}
         </p>
         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
           <div className="flex items-center">
