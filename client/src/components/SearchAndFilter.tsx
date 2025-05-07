@@ -190,7 +190,7 @@ export function SearchAndFilter({ onSearch, onFilter, filterOptions }: SearchAnd
                       id={`${filter.id}-all`} 
                       checked={!activeFilters[filter.id] || activeFilters[filter.id]?.length === 0}
                       onCheckedChange={(checked) => handleSelectAll(filter.id, !!checked)}
-                      className="text-primary"
+                      className="text-primary ios-checkbox"
                     />
                     <Label htmlFor={`${filter.id}-all`} className="pl-2 text-sm font-medium w-full cursor-pointer">
                       All
@@ -205,7 +205,7 @@ export function SearchAndFilter({ onSearch, onFilter, filterOptions }: SearchAnd
                           id={`${filter.id}-${option}`}
                           checked={isSelected}
                           onCheckedChange={(checked) => handleFilterSelect(filter.id, option, !!checked)}
-                          className="text-primary"
+                          className="text-primary ios-checkbox"
                         />
                         <Label htmlFor={`${filter.id}-${option}`} className="pl-2 text-sm font-medium w-full cursor-pointer">
                           {option}

@@ -338,7 +338,7 @@ export default function HomePage() {
       <ItemDetailModal 
         isOpen={!!selectedItemId}
         onClose={handleCloseItemDetail}
-        item={selectedItem}
+        item={selectedItem || null}
         isLoading={isItemLoading}
       />
       
