@@ -175,7 +175,7 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
             
             {hasBoxes && (
               <Badge className="ios-badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 px-2 py-0.5 text-xs">
-                <Icons.database className="h-2.5 w-2.5 mr-1 inline-block" />
+                <Icons.box className="h-2.5 w-2.5 mr-1 inline-block" />
                 {boxName}
               </Badge>
             )}

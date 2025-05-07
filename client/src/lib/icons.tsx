@@ -1,6 +1,14 @@
 import { LucideProps } from "lucide-react";
 
 export const Icons = {
+  box: (props: LucideProps) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M21 8V21a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8" />
+      <path d="M3 4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4H3V4Z" />
+      <path d="M12 12v9" />
+      <path d="M8 12h8" />
+    </svg>
+  ),
   plus: (props: LucideProps) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M12 5v14M5 12h14" />
