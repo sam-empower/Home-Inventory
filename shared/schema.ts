@@ -49,7 +49,10 @@ export const notionDatabaseItems = pgTable("notion_database_items", {
 export const insertNotionDatabaseItemSchema = createInsertSchema(notionDatabaseItems);
 export type InsertNotionDatabaseItem = z.infer<typeof insertNotionDatabaseItemSchema>;
 export type NotionDatabaseItem = typeof notionDatabaseItems.$inferSelect & {
-  attachments?: Array<{ name: string, url: string }>
+  attachments?: Array<{ name: string, url: string }>,
+  images?: Array<{ name: string, url: string }>,
+  boxIds?: string[],
+  roomName?: string
 };
 
 // Notion Credentials model for specific users

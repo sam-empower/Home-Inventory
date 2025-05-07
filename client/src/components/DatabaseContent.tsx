@@ -117,46 +117,67 @@ interface DatabaseItemCardProps {
 }
 
 function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardProps) {
-  const statusColor = getStatusColor(item.status || "");
+  // Get first image if available
+  const hasImage = !!(item.images && item.images.length > 0);
+  const firstImage = hasImage ? item.images![0] : null;
   
-  // Map status color to badge variant
-  const getBadgeVariant = (color: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (color) {
-      case "green": return "default";
-      case "yellow": return "secondary";
-      case "red": return "destructive";
-      default: return "outline";
-    }
-  };
+  // Room and box information
+  const roomName = item.roomName || 'No location';
   
   return (
     <Card 
-      className="bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99]"
+      className="bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden"
       onClick={() => onClick(item.id)}
     >
-      <CardContent className="p-4">
+      {hasImage && (
+        <div className="relative w-full h-40 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <img 
+            src={firstImage!.url} 
+            alt={item.title || 'Item image'} 
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Hide the image on error
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
+        </div>
+      )}
+      
+      <CardContent className={`p-4 ${hasImage ? '' : 'pt-4'}`}>
         <div className="flex justify-between items-start">
           <h3 className="font-medium text-gray-900 dark:text-white">{item.title || 'Untitled'}</h3>
-          <Badge variant={getBadgeVariant(statusColor)} className="px-2 py-1 text-xs font-medium">
-            {item.status || 'No Status'}
-          </Badge>
         </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-          {item.description || 'No description'}
-        </p>
-        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
+        
+        <div className="mt-2 flex flex-wrap gap-2">
+          {roomName !== 'No location' && (
+            <Badge variant="outline" className="px-2 py-1 text-xs font-medium border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+              {roomName}
+            </Badge>
+          )}
+        </div>
+        
+        {item.description && (
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+            {item.description}
+          </p>
+        )}
+        
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center">
-            <Icons.calendar className="h-3 w-3 text-gray-400 mr-1" />
+            <Icons.database className="h-3 w-3 text-gray-400 mr-1" />
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              {item.date ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}
+              Item #{item.id.substring(0, 8)}
             </span>
           </div>
-          <div className="flex items-center">
-            <Icons.user className="h-3 w-3 text-gray-400 mr-1" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {item.assignedTo || 'Unassigned'}
-            </span>
-          </div>
+          
+          {hasImage && (
+            <div className="flex items-center">
+              <Icons.file className="h-3 w-3 text-gray-400 mr-1" />
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Has image
+              </span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

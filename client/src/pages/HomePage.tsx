@@ -19,13 +19,15 @@ export default function HomePage() {
   const [filters, setFilters] = useState<Record<string, string | null>>({});
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   
-  // Sample filter options (will be populated from database schema)
+  // Filter options for box and room
   const [filterOptions, setFilterOptions] = useState<FilterOption[]>([
-    { id: "status", type: "status", name: "Status", value: null, available: ["All", "In Progress", "Completed", "Planning"] },
-    { id: "priority", type: "priority", name: "Priority", value: "High", available: ["All", "High", "Medium", "Low"] },
-    { id: "dueDate", type: "date", name: "Due Date", value: null, available: [] },
-    { id: "assignedTo", type: "person", name: "Assigned To", value: null, available: [] },
+    { id: "box", type: "box", name: "Box", value: null, available: [] },
+    { id: "room", type: "room", name: "Room", value: null, available: [] },
   ]);
+  
+  // Track unique box and room values
+  const [boxOptions, setBoxOptions] = useState<Record<string, string>>({});
+  const [roomOptions, setRoomOptions] = useState<string[]>([]);
   
   // Fetch database data with search and filters
   const { 
@@ -161,6 +163,37 @@ export default function HomePage() {
   const handleCloseItemDetail = useCallback(() => {
     setSelectedItemId(null);
   }, []);
+  
+  // Update filter options with available room values
+  useEffect(() => {
+    if (items && items.length > 0) {
+      // Collect unique room names
+      const rooms: Set<string> = new Set();
+      
+      // Get unique rooms
+      items.forEach(item => {
+        if (item.roomName) {
+          rooms.add(item.roomName);
+        }
+      });
+      
+      // Convert set to array and update state
+      setRoomOptions(Array.from(rooms));
+      
+      // Update filter options
+      setFilterOptions(current => {
+        return current.map(filter => {
+          if (filter.id === 'room') {
+            return {
+              ...filter,
+              available: ['All', ...Array.from(rooms)]
+            };
+          }
+          return filter;
+        });
+      });
+    }
+  }, [items]);
   
   // Handle refresh data from app header
   const handleRefreshData = useCallback(() => {
