@@ -2,7 +2,7 @@
 import { Fragment } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { NotionDatabaseItem } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -17,7 +17,7 @@ export function ItemDetailModal({ isOpen, onClose, item, isLoading }: ItemDetail
   const isMobile = useIsMobile();
 
   const content = (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
       {isLoading || !item ? (
         <LoadingDetailContent />
       ) : (
@@ -78,7 +78,7 @@ export function ItemDetailModal({ isOpen, onClose, item, isLoading }: ItemDetail
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent
           side="bottom"
-          className="h-[65vh] rounded-t-xl shadow-lg pt-4"
+          className="h-[65vh] rounded-t-xl shadow-lg pt-4 overflow-hidden flex flex-col"
           hideClose={true}
         >
           {content}
@@ -93,6 +93,9 @@ export function ItemDetailModal({ isOpen, onClose, item, isLoading }: ItemDetail
         <DialogTitle className="sr-only">
           Item Details
         </DialogTitle>
+        <DialogDescription className="sr-only">
+          Detailed information about the selected item
+        </DialogDescription>
         {content}
       </DialogContent>
     </Dialog>
