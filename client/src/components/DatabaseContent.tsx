@@ -183,19 +183,7 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
         </div>
         
         <div className="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end">
-          {hasImage && (
-            <div className="flex items-center mr-auto">
-              <Icons.file className="h-3 w-3 text-primary mr-1" />
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Photo
-              </span>
-            </div>
-          )}
-          
-          {/* iOS-style chevron indicator */}
-          <div className="h-4 w-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-            <Icons.plus className="h-2.5 w-2.5 text-gray-500 dark:text-gray-400 rotate-45" />
-          </div>
+          {/* Empty footer to maintain spacing */}
         </div>
       </CardContent>
     </Card>
