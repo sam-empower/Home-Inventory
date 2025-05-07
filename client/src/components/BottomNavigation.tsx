@@ -33,12 +33,12 @@ export function BottomNavigation({
   };
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-30">
+    <nav className="fixed bottom-0 inset-x-0 bg-white/80 dark:bg-black/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 z-30">
       <div className="max-w-md mx-auto px-4">
         <div className="flex justify-around">
           <NavButton 
             icon={<Icons.database className="h-5 w-5" />}
-            label="Database"
+            label="All Items"
             isActive={activeSection === "main"}
             onClick={() => handleSectionChange("main")}
           />
@@ -64,6 +64,8 @@ export function BottomNavigation({
             onClick={() => handleSectionChange("profile")}
           />
         </div>
+        {/* iOS Home indicator space */}
+        <div className="h-5"></div>
       </div>
     </nav>
   );
@@ -82,13 +84,17 @@ function NavButton({ icon, label, isActive, onClick }: NavButtonProps) {
       variant="ghost"
       className={`py-3 px-4 flex flex-col items-center ${
         isActive 
-          ? "text-primary-600 dark:text-primary-400" 
+          ? "text-primary dark:text-primary" 
           : "text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
       }`}
       onClick={onClick}
     >
-      {icon}
-      <span className="text-xs mt-1">{label}</span>
+      <div className={`${isActive ? 'scale-110 mb-0.5' : ''} transition-transform duration-150`}>
+        {icon}
+      </div>
+      <span className={`text-[10px] mt-1 font-medium ${isActive ? 'opacity-100' : 'opacity-80'}`}>
+        {label}
+      </span>
     </Button>
   );
 }

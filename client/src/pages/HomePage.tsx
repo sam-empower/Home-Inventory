@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNotion } from "@/context/NotionContext";
 import { useNotionDatabase, useNotionDatabaseItem } from "@/hooks/useNotionDatabase";
+import { useNotionApi } from "@/hooks/useNotionApi";
 import { useSettings } from "@/hooks/useSettings";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { AppHeader } from "@/components/AppHeader";
@@ -28,6 +29,7 @@ export default function HomePage() {
   // Track unique box and room values
   const [boxOptions, setBoxOptions] = useState<Record<string, string>>({});
   const [roomOptions, setRoomOptions] = useState<string[]>([]);
+  const [isLoadingBoxes, setIsLoadingBoxes] = useState(false);
   
   // Fetch database data with search and filters
   const { 
@@ -153,8 +155,28 @@ export default function HomePage() {
   }, []);
   
   const handleFilter = useCallback((newFilters: Record<string, string | null>) => {
-    setFilters(newFilters);
-  }, []);
+    // Process filters before setting state
+    const processedFilters: Record<string, string | null> = {};
+    
+    // Handle each filter type appropriately
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (key === 'room' && value && value !== 'All') {
+        processedFilters.room = value;
+      }
+      else if (key === 'box' && value && value !== 'All') {
+        // For box filter, we need to find the box ID by title
+        const boxId = Object.entries(boxOptions).find(([id, title]) => title === value)?.[0] || null;
+        if (boxId) {
+          processedFilters.box = boxId;
+        }
+      }
+      else if (value && value !== 'All') {
+        processedFilters[key] = value;
+      }
+    });
+    
+    setFilters(processedFilters);
+  }, [boxOptions]);
   
   const handleItemClick = useCallback((id: string) => {
     setSelectedItemId(id);
@@ -164,23 +186,44 @@ export default function HomePage() {
     setSelectedItemId(null);
   }, []);
   
-  // Update filter options with available room values
+  // Get box details by ID
+  const { notionRequest } = useNotionApi();
+  
+  const fetchBoxDetails = useCallback(async (boxId: string) => {
+    try {
+      const response = await notionRequest('GET', `/api/notion/database/${boxId}`);
+      if (response && response.id && response.title) {
+        return { id: response.id, title: response.title };
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error fetching box ${boxId}:`, error);
+      return null;
+    }
+  }, [notionRequest]);
+  
+  // Update filter options with available room and box values
   useEffect(() => {
     if (items && items.length > 0) {
       // Collect unique room names
       const rooms: Set<string> = new Set();
+      const boxIds: Set<string> = new Set();
       
-      // Get unique rooms
+      // Get unique rooms and box IDs
       items.forEach(item => {
         if (item.roomName) {
           rooms.add(item.roomName);
         }
+        
+        if (item.boxIds && item.boxIds.length > 0) {
+          item.boxIds.forEach(id => boxIds.add(id));
+        }
       });
       
-      // Convert set to array and update state
+      // Convert sets to arrays and update state
       setRoomOptions(Array.from(rooms));
       
-      // Update filter options
+      // Update filter options for rooms
       setFilterOptions(current => {
         return current.map(filter => {
           if (filter.id === 'room') {
@@ -192,8 +235,44 @@ export default function HomePage() {
           return filter;
         });
       });
+      
+      // Fetch box details for each unique box ID
+      const fetchBoxes = async () => {
+        setIsLoadingBoxes(true);
+        
+        const boxMap: Record<string, string> = {};
+        const boxPromises = Array.from(boxIds).map(async (boxId) => {
+          const boxDetails = await fetchBoxDetails(boxId);
+          if (boxDetails) {
+            boxMap[boxId] = boxDetails.title;
+          }
+        });
+        
+        await Promise.all(boxPromises);
+        
+        setBoxOptions(boxMap);
+        
+        // Update filter options for boxes
+        setFilterOptions(current => {
+          return current.map(filter => {
+            if (filter.id === 'box') {
+              return {
+                ...filter,
+                available: ['All', ...Object.values(boxMap)]
+              };
+            }
+            return filter;
+          });
+        });
+        
+        setIsLoadingBoxes(false);
+      };
+      
+      if (boxIds.size > 0) {
+        fetchBoxes();
+      }
     }
-  }, [items]);
+  }, [items, fetchBoxDetails]);
   
   // Handle refresh data from app header
   const handleRefreshData = useCallback(() => {

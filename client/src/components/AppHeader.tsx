@@ -14,56 +14,49 @@ export function AppHeader({ onRefreshData, onOpenSettings, isRefreshing }: AppHe
   const { toggleTheme, theme } = useTheme();
   
   return (
-    <header className="sticky top-0 z-30 bg-white dark:bg-gray-800 shadow-sm">
+    <header className="sticky top-0 z-30 ios-nav">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           <div className="text-lg font-semibold text-gray-900 dark:text-white">
-            {databaseInfo?.title || "Notion DB"}
+            {databaseInfo?.title || "My Items"}
           </div>
           <div className="flex items-center">
             {isConnected ? (
-              <>
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </span>
-                <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-medium">Connected</span>
-              </>
+              <span className="ios-badge bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 ml-2 px-1.5 py-0.5 text-xs font-medium">
+                <span className="mr-1">●</span> Live
+              </span>
             ) : (
-              <>
-                <span className="relative flex h-3 w-3">
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-gray-400"></span>
-                </span>
-                <span className="ml-2 text-xs text-gray-600 dark:text-gray-400 font-medium">Not connected</span>
-              </>
+              <span className="ios-badge bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400 ml-2 px-1.5 py-0.5 text-xs font-medium">
+                Offline
+              </span>
             )}
           </div>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-1">
           <Button
             variant="ghost" 
-            size="icon"
+            size="sm"
             onClick={toggleTheme}
-            className="text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400"
+            className="rounded-full w-8 h-8 flex items-center justify-center text-primary dark:text-primary-foreground hover:bg-primary-50 dark:hover:bg-primary-900/20"
           >
             {theme === 'dark' ? <Icons.sun className="h-5 w-5" /> : <Icons.moon className="h-5 w-5" />}
           </Button>
           
           <Button
             variant="ghost" 
-            size="icon"
+            size="sm"
             onClick={onRefreshData}
             disabled={isRefreshing}
-            className="text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400"
+            className="rounded-full w-8 h-8 flex items-center justify-center text-primary dark:text-primary-foreground hover:bg-primary-50 dark:hover:bg-primary-900/20"
           >
             <Icons.refresh className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
           
           <Button
             variant="ghost" 
-            size="icon"
+            size="sm"
             onClick={onOpenSettings}
-            className="text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400"
+            className="rounded-full w-8 h-8 flex items-center justify-center text-primary dark:text-primary-foreground hover:bg-primary-50 dark:hover:bg-primary-900/20"
           >
             <Icons.settings className="h-5 w-5" />
           </Button>

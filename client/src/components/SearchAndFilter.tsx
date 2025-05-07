@@ -1,7 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/lib/icons";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export interface FilterOption {
   id: string;
@@ -21,6 +28,7 @@ export function SearchAndFilter({ onSearch, onFilter, filterOptions }: SearchAnd
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilters, setActiveFilters] = useState<Record<string, string | null>>({});
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [openFilterId, setOpenFilterId] = useState<string | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -40,37 +48,50 @@ export function SearchAndFilter({ onSearch, onFilter, filterOptions }: SearchAnd
     setSearchTerm(e.target.value);
   };
 
-  const toggleFilter = (filter: FilterOption) => {
+  const handleFilterSelect = (filterId: string, value: string | null) => {
     setActiveFilters(current => {
       const newFilters = { ...current };
       
-      if (newFilters[filter.id] === filter.value) {
-        // If the same value is already selected, remove it
-        newFilters[filter.id] = null;
+      if (value === "All") {
+        // If "All" is selected, remove the filter
+        newFilters[filterId] = null;
       } else {
         // Otherwise, set the value
-        newFilters[filter.id] = filter.value;
+        newFilters[filterId] = value;
       }
       
       onFilter(newFilters);
       return newFilters;
     });
+    
+    // Close the popover after selection
+    setOpenFilterId(null);
   };
 
-  const isFilterActive = (filter: FilterOption) => {
-    return activeFilters[filter.id] === filter.value;
+  const getFilterDisplayValue = (filter: FilterOption) => {
+    const value = activeFilters[filter.id];
+    return value || "All";
+  };
+
+  const getFilterStyles = (filter: FilterOption) => {
+    const isActive = activeFilters[filter.id] !== null && activeFilters[filter.id] !== undefined;
+    
+    if (isActive) {
+      return "border-primary bg-primary-50 dark:bg-primary-900/30 text-primary dark:text-primary-foreground";
+    }
+    return "border border-border bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300";
   };
 
   return (
-    <div className="mb-4 sticky top-14 z-20 bg-gray-50 dark:bg-gray-900 pt-2 pb-3">
+    <div className="mb-4 sticky top-14 z-20 bg-background pt-2 pb-3">
       <div className="flex flex-col space-y-3">
         <div className="relative">
           <Input
             type="text"
-            placeholder="Search in database..."
+            placeholder="Search items..."
             value={searchTerm}
             onChange={handleSearchChange}
-            className="pl-10 pr-4 py-2"
+            className="pl-10 pr-4 py-2 rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus-visible:ring-2 focus-visible:ring-primary"
           />
           <Icons.search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
         </div>
@@ -79,29 +100,59 @@ export function SearchAndFilter({ onSearch, onFilter, filterOptions }: SearchAnd
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Filters:</span>
           
           {filterOptions.map((filter) => (
-            <Button
-              key={`${filter.id}-${filter.value}`}
-              variant={isFilterActive(filter) ? "outline" : "ghost"}
-              size="sm"
-              className={`
-                px-3 py-1 text-xs rounded-full whitespace-nowrap h-7
-                ${isFilterActive(filter) 
-                  ? "border-primary-300 bg-primary-50 dark:bg-primary-900 dark:border-primary-700 text-primary-700 dark:text-primary-300" 
-                  : "border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"}
-              `}
-              onClick={() => toggleFilter(filter)}
+            <Popover 
+              key={filter.id} 
+              open={openFilterId === filter.id}
+              onOpenChange={(open) => {
+                if (open) {
+                  setOpenFilterId(filter.id);
+                } else if (openFilterId === filter.id) {
+                  setOpenFilterId(null);
+                }
+              }}
             >
-              {filter.name}: {filter.value || "All"}
-            </Button>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`
+                    px-3 py-1 text-xs rounded-full whitespace-nowrap h-7
+                    ${getFilterStyles(filter)}
+                  `}
+                >
+                  {filter.name}: {getFilterDisplayValue(filter)}
+                  <Icons.plus className="h-3 w-3 ml-1 rotate-45 transition-transform" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-60 p-0 ios-modal border-none overflow-hidden">
+                <div className="bg-primary p-3 text-white">
+                  <h3 className="text-sm font-semibold">Select {filter.name}</h3>
+                </div>
+                <div className="p-3">
+                  <RadioGroup 
+                    value={activeFilters[filter.id] || "All"}
+                    onValueChange={(value) => handleFilterSelect(filter.id, value === "All" ? null : value)}
+                    className="space-y-1"
+                  >
+                    <div className="ios-list-item rounded-t-lg">
+                      <RadioGroupItem value="All" id={`${filter.id}-all`} className="text-primary" />
+                      <Label htmlFor={`${filter.id}-all`} className="pl-2 text-sm font-medium">
+                        All
+                      </Label>
+                    </div>
+                    {filter.available.filter(item => item !== "All").map((option) => (
+                      <div key={option} className="ios-list-item last:rounded-b-lg">
+                        <RadioGroupItem value={option} id={`${filter.id}-${option}`} className="text-primary" />
+                        <Label htmlFor={`${filter.id}-${option}`} className="pl-2 text-sm font-medium">
+                          {option}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              </PopoverContent>
+            </Popover>
           ))}
-          
-          <Button
-            variant="outline" 
-            size="sm"
-            className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 p-0 min-w-0"
-          >
-            <Icons.plus className="h-3 w-3" />
-          </Button>
         </div>
       </div>
     </div>

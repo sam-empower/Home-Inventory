@@ -123,14 +123,15 @@ function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardPro
   
   // Room and box information
   const roomName = item.roomName || 'No location';
+  const hasBoxes = item.boxIds && item.boxIds.length > 0;
   
   return (
     <Card 
-      className="bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden"
+      className="ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden mb-3"
       onClick={() => onClick(item.id)}
     >
       {hasImage && (
-        <div className="relative w-full h-40 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <div className="relative w-full h-48 bg-gray-100 dark:bg-gray-700 overflow-hidden">
           <img 
             src={firstImage!.url} 
             alt={item.title || 'Item image'} 
@@ -140,44 +141,61 @@ function DatabaseItemCard({ item, onClick, getStatusColor }: DatabaseItemCardPro
               (e.target as HTMLElement).style.display = 'none';
             }}
           />
+          
+          {/* iOS-style image overlay gradient */}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
         </div>
       )}
       
-      <CardContent className={`p-4 ${hasImage ? '' : 'pt-4'}`}>
+      <CardContent className={`p-5 ${hasImage ? '' : 'pt-5'}`}>
         <div className="flex justify-between items-start">
-          <h3 className="font-medium text-gray-900 dark:text-white">{item.title || 'Untitled'}</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
+            {item.title || 'Untitled'}
+          </h3>
         </div>
         
         <div className="mt-2 flex flex-wrap gap-2">
           {roomName !== 'No location' && (
-            <Badge variant="outline" className="px-2 py-1 text-xs font-medium border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+            <Badge className="ios-badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0 px-2.5 py-1">
               {roomName}
+            </Badge>
+          )}
+          
+          {hasBoxes && (
+            <Badge className="ios-badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 px-2.5 py-1">
+              <Icons.database className="h-3 w-3 mr-1 inline-block" />
+              Box
             </Badge>
           )}
         </div>
         
         {item.description && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 line-clamp-2">
             {item.description}
           </p>
         )}
         
-        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center">
-            <Icons.database className="h-3 w-3 text-gray-400 mr-1" />
+            <Icons.database className="h-3.5 w-3.5 text-primary mr-1" />
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              Item #{item.id.substring(0, 8)}
+              #{item.id.substring(0, 6)}
             </span>
           </div>
           
           {hasImage && (
             <div className="flex items-center">
-              <Icons.file className="h-3 w-3 text-gray-400 mr-1" />
+              <Icons.file className="h-3.5 w-3.5 text-primary mr-1" />
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                Has image
+                Photo
               </span>
             </div>
           )}
+          
+          {/* iOS-style chevron indicator */}
+          <div className="h-4 w-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center ml-2">
+            <Icons.plus className="h-2.5 w-2.5 text-gray-500 dark:text-gray-400 rotate-45" />
+          </div>
         </div>
       </CardContent>
     </Card>
