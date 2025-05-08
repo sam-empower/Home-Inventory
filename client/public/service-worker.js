@@ -149,5 +149,16 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Let Workbox handle the request
+  // Special handling for navigation requests to return index.html for all HTML requests
+  // This ensures the SPA routing works properly even for direct URL access
+  if (event.request.mode === 'navigate' && !event.request.url.includes('/api/')) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match('/index.html');
+      })
+    );
+    return;
+  }
+  
+  // Let Workbox handle all other requests
 });
