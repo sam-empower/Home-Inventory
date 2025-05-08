@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNotion } from "@/context/NotionContext";
 import { useNotionDatabase, useNotionDatabaseItem } from "@/hooks/useNotionDatabase";
 import { useNotionApi } from "@/hooks/useNotionApi";
@@ -12,6 +12,12 @@ import { ItemDetailModal } from "@/components/ItemDetailModal";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { 
+  isCoreSpotlightSupported, 
+  indexItemsForSpotlight, 
+  initSpotlightIntegration 
+} from "@/lib/iosSpotlight";
+import { updateSpotlightItemsInSW } from "@/lib/serviceWorkerRegistration";
 
 export default function HomePage() {
   const { isConnected, isLoading: isConnectionLoading, refresh: refreshConnection } = useNotion();
@@ -20,6 +26,9 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, string | null>>({});
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [isSpotlightSupported, setIsSpotlightSupported] = useState(false);
+  const [isSpotlightInitialized, setIsSpotlightInitialized] = useState(false);
+  const lastIndexedItems = useRef<string[]>([]);
   
   // Filter options for box and room
   const [filterOptions, setFilterOptions] = useState<FilterOption[]>([
@@ -319,11 +328,75 @@ export default function HomePage() {
     }
   }, [items, fetchBoxDetails]);
   
+  // Initialize iOS Spotlight integration
+  useEffect(() => {
+    const checkSpotlightSupport = async () => {
+      const supported = isCoreSpotlightSupported();
+      setIsSpotlightSupported(supported);
+      
+      if (supported && !isSpotlightInitialized) {
+        try {
+          await initSpotlightIntegration();
+          setIsSpotlightInitialized(true);
+          console.log('iOS Spotlight integration initialized');
+          
+          // Handle deep links from Spotlight search
+          window.addEventListener('openItemDetail', ((event: CustomEvent) => {
+            if (event.detail && event.detail.itemId) {
+              setSelectedItemId(event.detail.itemId);
+            }
+          }) as EventListener);
+        } catch (error) {
+          console.error('Failed to initialize Spotlight integration:', error);
+        }
+      }
+    };
+    
+    checkSpotlightSupport();
+  }, [isSpotlightInitialized]);
+  
+  // Index items in iOS Spotlight search when they change
+  useEffect(() => {
+    if (isSpotlightSupported && isSpotlightInitialized && items && items.length > 0) {
+      // Check if items have changed since last indexing
+      const itemIds = items.map(item => item.id);
+      const itemsChanged = JSON.stringify(itemIds) !== JSON.stringify(lastIndexedItems.current);
+      
+      if (itemsChanged) {
+        console.log('Indexing items for iOS Spotlight search...');
+        
+        // Update Spotlight index
+        indexItemsForSpotlight(items)
+          .then(() => {
+            // Also update SW cache
+            updateSpotlightItemsInSW(items);
+            // Save indexed item IDs
+            lastIndexedItems.current = itemIds;
+            console.log(`Indexed ${items.length} items for iOS Spotlight search`);
+          })
+          .catch(error => {
+            console.error('Error indexing items for Spotlight:', error);
+          });
+      }
+    }
+  }, [items, isSpotlightSupported, isSpotlightInitialized]);
+  
   // Handle refresh data from app header
   const handleRefreshData = useCallback(() => {
     refreshConnection();
     refreshData();
-  }, [refreshConnection, refreshData]);
+    
+    // Re-index items for Spotlight search if supported
+    if (isSpotlightSupported && isSpotlightInitialized && items && items.length > 0) {
+      indexItemsForSpotlight(items)
+        .then(() => {
+          console.log(`Re-indexed ${items.length} items for iOS Spotlight search`);
+        })
+        .catch(error => {
+          console.error('Error re-indexing items for Spotlight:', error);
+        });
+    }
+  }, [refreshConnection, refreshData, isSpotlightSupported, isSpotlightInitialized, items]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -331,6 +404,7 @@ export default function HomePage() {
         onRefreshData={handleRefreshData}
         onOpenSettings={() => setIsSettingsOpen(true)}
         isRefreshing={isRefetching}
+        isSpotlightEnabled={isSpotlightSupported && isSpotlightInitialized}
       />
       
       <main className="flex-1 container mx-auto px-4 py-4 pb-20">
