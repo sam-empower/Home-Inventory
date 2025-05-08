@@ -25,35 +25,53 @@ const SPOTLIGHT_CACHE_KEY = 'ios-spotlight-cache';
 /**
  * Check if the current browser supports the CoreSpotlight API
  * 
- * NOTE: For testing purposes, this function always returns true.
- * In production, you'd want to do more thorough detection.
+ * Enhanced version for testing with better iOS simulation
  */
 export function isCoreSpotlightSupported(): boolean {
   try {
-    // Log device info for debugging
-    console.log("iOS Spotlight testing mode:", {
+    // Get device info for better detection
+    const userAgent = navigator.userAgent;
+    const isActualIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+    
+    // Flag to force testing mode
+    const forceTestMode = true; // Change to false to only enable on iOS
+    
+    // Check for iOS-like environment (either real iOS or testing)
+    const isIOSEnv = isActualIOS || forceTestMode;
+    
+    // Log device detection for debugging
+    console.log("Device detection for Spotlight:", {
+      isIOS: isIOSEnv,
       userAgent: navigator.userAgent,
-      testMode: true
+      testMode: forceTestMode
     });
     
-    // TESTING MODE - Always return true to show the badge for testing
-    return true;
+    if (forceTestMode && !isActualIOS) {
+      console.log("iOS Spotlight testing mode:", {
+        userAgent: navigator.userAgent,
+        testMode: true
+      });
+      
+      // Simulate iOS in testing environment
+      console.log("iOS Spotlight integration test mode - simulating successful initialization");
+      return true;
+    }
     
-    /* PRODUCTION CODE (commented out for now)
-    // Check if on iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    // REAL iOS DEVICE CODE
+    if (isActualIOS) {
+      // Check if running as PWA
+      const displayMode = window.matchMedia('(display-mode: standalone)').matches;
+      const navigatorStandalone = (window.navigator as any).standalone === true;
+      const isPWA = displayMode || navigatorStandalone;
+      
+      // Check for webkit API
+      const hasWebkit = typeof window !== 'undefined' && 'webkit' in window && (window as any).webkit;
+      
+      // Return true only if all conditions are met for real iOS
+      return isPWA && hasWebkit;
+    }
     
-    // Check if running as PWA
-    const displayMode = window.matchMedia('(display-mode: standalone)').matches;
-    const navigatorStandalone = (window.navigator as any).standalone === true;
-    const isPWA = displayMode || navigatorStandalone;
-    
-    // Check for webkit API
-    const hasWebkit = typeof window !== 'undefined' && 'webkit' in window && (window as any).webkit;
-    
-    // Return true only if all conditions are met
-    return isIOS && isPWA && hasWebkit;
-    */
+    return forceTestMode; // Return test mode value
   } catch (error) {
     console.error("Error detecting Spotlight support:", error);
     return true; // Still return true in test mode

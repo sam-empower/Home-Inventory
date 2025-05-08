@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Inventory App</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4ecfa 100%);
+      color: #333;
+      text-align: center;
+    }
+    .container {
+      max-width: 500px;
+      padding: 2rem;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+    h1 {
+      margin-top: 0;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 2rem;
+    }
+    p {
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    a {
+      display: inline-block;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      color: white;
+      text-decoration: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    a:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Home Inventory</h1>
+    <p>This application requires JavaScript to run. If you're seeing this page, it might be because you've accessed a direct URL that should be handled by the app's routing system.</p>
+    <p>Please go back to the home page to use the application properly.</p>
+    <a href="/">Go to Home Page</a>
+  </div>
+  <script>
+    // Redirect to the main app after a short delay
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 3000);
+  </script>
+</body>
+</html>

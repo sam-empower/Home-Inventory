@@ -1,0 +1,11 @@
+# Build instructions for Replit deployment
+process = "npm run build"
+deploymentTarget = "static"
+entrypoint = "index.html"
+publicDir = "dist/public"
+
+# Routing settings
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

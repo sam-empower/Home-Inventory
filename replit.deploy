@@ -1,0 +1,9 @@
+deploy_config:
+  type: static
+  public_folder: ./dist/public
+  index_file: index.html
+
+redirects:
+  - from: /*
+    to: /index.html
+    status: 200
