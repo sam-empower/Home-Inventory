@@ -12,6 +12,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={HomePage} />
+      {/* Add specific routes here if needed */}
+      <Route path="/:path*" component={HomePage} />
+      {/* This is a fallback that should never be reached due to the catch-all above */}
       <Route component={NotFound} />
     </Switch>
   );

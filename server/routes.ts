@@ -487,6 +487,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add a catch-all route handler for non-API routes
+  // This ensures all routes will serve the index.html for client-side routing
+  app.get('*', (req, res, next) => {
+    // If this is an API request, let it pass through to the API handlers
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    
+    console.log(`Catch-all route handling: ${req.path}`);
+    
+    // For all other requests, send the index.html (will be handled by setupVite or serveStatic)
+    next();
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
