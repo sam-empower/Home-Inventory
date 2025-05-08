@@ -28,6 +28,29 @@
       "short_name": "Database",
       "description": "View your Notion database",
       "url": "/"
+    },
+    {
+      "name": "Search Items",
+      "short_name": "Search",
+      "description": "Search your inventory items",
+      "url": "/?action=search"
     }
-  ]
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://your-app-url.replit.app/"
+    }
+  ],
+  "scope_extensions": [
+    {
+      "origin": "*.spotlight.ios"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "handle_links": "preferred",
+  "scope": "/",
+  "capture_links": "existing-client-navigate"
 }

@@ -6,6 +6,23 @@ const { CacheFirst, NetworkFirst, StaleWhileRevalidate } = workbox.strategies;
 const { CacheableResponsePlugin } = workbox.cacheableResponse;
 const { ExpirationPlugin } = workbox.expiration;
 
+// Spotlight Search Integration
+// This helps with iOS Spotlight integration
+let spotlightItems = [];
+
+// Listen for messages from the main thread
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  // Update spotlight items when received from main thread
+  if (event.data && event.data.type === 'UPDATE_SPOTLIGHT_ITEMS') {
+    spotlightItems = event.data.items || [];
+    console.log(`Service worker updated ${spotlightItems.length} items for Spotlight search`);
+  }
+});
+
 // Cache the Google Fonts stylesheets with a stale-while-revalidate strategy
 registerRoute(
   ({url}) => url.origin === 'https://fonts.googleapis.com',
