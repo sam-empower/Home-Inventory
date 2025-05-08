@@ -81,6 +81,12 @@
   /* iOS navigation bar style */
   .ios-nav {
     @apply bg-white/80 dark:bg-black/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800;
+    /* Fix for iOS Safari - ensure the header is visible */
+    position: -webkit-sticky;
+    z-index: 50;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    width: 100%;
   }
   
   /* iOS-style buttons */

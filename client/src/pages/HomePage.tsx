@@ -407,7 +407,8 @@ export default function HomePage() {
         isSpotlightEnabled={isSpotlightSupported && isSpotlightInitialized}
       />
       
-      <main className="flex-1 container mx-auto px-4 py-4 pb-20">
+      {/* Add padding-top to accommodate fixed header */}
+      <main className="flex-1 container mx-auto px-4 py-4 pb-20 pt-16">
         {isConnected && (
           <>
             <SearchAndFilter 
