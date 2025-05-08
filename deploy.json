@@ -1,0 +1,22 @@
+{
+  "install": "npm ci",
+  "run": "npm run start",
+  "build": "npm run build",
+  "environment": {
+    "NODE_ENV": "production"
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server/index.js"
+    },
+    {
+      "src": "/(.*\\.[a-z0-9]+)",
+      "dest": "$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "index.html"
+    }
+  ]
+}
