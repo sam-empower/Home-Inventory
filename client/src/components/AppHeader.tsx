@@ -19,14 +19,20 @@ export function AppHeader({ onRefreshData, onOpenSettings, isRefreshing, isSpotl
   
   // Check if Spotlight search is supported
   useEffect(() => {
-    // We'll show the badge regardless of actual support for testing purposes
-    setSpotlightSupported(true);
+    // We'll check if it's at least an iOS device
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     
-    // Log actual support status for debugging
-    const actualSupport = isCoreSpotlightSupported();
-    console.log('Spotlight actual support status:', actualSupport);
+    // Only show on iOS devices for a more realistic test
+    setSpotlightSupported(isIOS);
     
-    // In production, you'd uncomment this:
+    // Log device info for debugging
+    console.log('Device detection for Spotlight:', {
+      isIOS,
+      userAgent: navigator.userAgent,
+      testMode: true
+    });
+    
+    // In production, you'd use the full check:
     // setSpotlightSupported(isCoreSpotlightSupported());
   }, []);
   return (
