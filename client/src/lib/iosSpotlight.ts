@@ -27,8 +27,9 @@ const SPOTLIGHT_CACHE_KEY = 'ios-spotlight-cache';
  */
 export function isCoreSpotlightSupported(): boolean {
   try {
-    // More reliable detection - check if it's an iOS device first
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    // Check if Safari on iOS
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream && isSafari;
     
     // Then check for the searchKit API
     const hasWebkitSearchKit = typeof window !== 'undefined' && 
@@ -36,15 +37,14 @@ export function isCoreSpotlightSupported(): boolean {
       (window as any).webkit && 
       'searchKit' in (window as any).webkit;
     
-    // Check display mode first
+    // Check if running as PWA in multiple ways
     const displayModeQuery = window.matchMedia('(display-mode: standalone)');
     const displayModeStandalone = displayModeQuery.matches;
-    
-    // Check navigator.standalone
     const navigatorStandalone = 'standalone' in window.navigator && (window.navigator as any).standalone === true;
+    const isPWA = displayModeStandalone || navigatorStandalone || window.matchMedia('(display-mode: standalone)').matches;
     
-    // Additional PWA context checks
-    const isStandalone = displayModeStandalone || navigatorStandalone;
+    // Double check we're in Safari and running as PWA
+    const isStandalone = isPWA && isIOS;
     
     // More detailed logging
     console.log("iOS Spotlight detection details:", { 
