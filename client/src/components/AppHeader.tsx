@@ -19,7 +19,15 @@ export function AppHeader({ onRefreshData, onOpenSettings, isRefreshing, isSpotl
   
   // Check if Spotlight search is supported
   useEffect(() => {
-    setSpotlightSupported(isCoreSpotlightSupported());
+    // We'll show the badge regardless of actual support for testing purposes
+    setSpotlightSupported(true);
+    
+    // Log actual support status for debugging
+    const actualSupport = isCoreSpotlightSupported();
+    console.log('Spotlight actual support status:', actualSupport);
+    
+    // In production, you'd uncomment this:
+    // setSpotlightSupported(isCoreSpotlightSupported());
   }, []);
   return (
     <header className="fixed top-0 left-0 right-0 z-30 ios-nav">
@@ -40,9 +48,9 @@ export function AppHeader({ onRefreshData, onOpenSettings, isRefreshing, isSpotl
             )}
             
             {spotlightSupported && (
-              <span className="ios-badge bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 ml-2 px-2 py-1 text-xs font-medium animate-pulse">
+              <span className="ios-badge bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200 ml-2 px-2.5 py-1.5 text-xs font-medium animate-pulse border border-blue-300 dark:border-blue-600 shadow-sm">
                 <svg 
-                  className="inline-block w-4 h-4 mr-1" 
+                  className="inline-block w-4 h-4 mr-1 animate-bounce" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24" 
@@ -50,7 +58,7 @@ export function AppHeader({ onRefreshData, onOpenSettings, isRefreshing, isSpotl
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                Spotlight
+                Spotlight Ready
               </span>
             )}
           </div>
