@@ -26,10 +26,33 @@ const SPOTLIGHT_CACHE_KEY = 'ios-spotlight-cache';
  * Check if the current browser supports the CoreSpotlight API
  */
 export function isCoreSpotlightSupported(): boolean {
-  // @ts-ignore - CoreSpotlight is not in the standard TypeScript definitions
-  return typeof window !== 'undefined' && 
-    'webkit' in window && 
-    'searchKit' in (window as any).webkit;
+  try {
+    // More reliable detection - check if it's an iOS device first
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    
+    // Then check for the searchKit API
+    const hasWebkitSearchKit = typeof window !== 'undefined' && 
+      'webkit' in window && 
+      (window as any).webkit && 
+      'searchKit' in (window as any).webkit;
+    
+    // Additional check - see if we're running as an installed PWA
+    const isStandalone = 'standalone' in window.navigator && (window.navigator as any).standalone === true;
+    
+    // Log for debugging
+    console.log("iOS Spotlight detection:", { 
+      isIOS, 
+      hasWebkitSearchKit,
+      isStandalone,
+      userAgent: navigator.userAgent
+    });
+    
+    // Return true only if all conditions are met
+    return isIOS && hasWebkitSearchKit && isStandalone;
+  } catch (error) {
+    console.error("Error detecting Spotlight support:", error);
+    return false;
+  }
 }
 
 /**

@@ -40,9 +40,9 @@ export function AppHeader({ onRefreshData, onOpenSettings, isRefreshing, isSpotl
             )}
             
             {spotlightSupported && (
-              <span className="ios-badge bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 ml-2 px-1.5 py-0.5 text-xs font-medium">
+              <span className="ios-badge bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 ml-2 px-2 py-1 text-xs font-medium animate-pulse">
                 <svg 
-                  className="inline-block w-3 h-3 mr-1" 
+                  className="inline-block w-4 h-4 mr-1" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24" 
