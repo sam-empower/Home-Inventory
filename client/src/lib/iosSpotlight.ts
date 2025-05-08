@@ -37,7 +37,8 @@ export function isCoreSpotlightSupported(): boolean {
       'searchKit' in (window as any).webkit;
     
     // Additional check - see if we're running as an installed PWA
-    const isStandalone = 'standalone' in window.navigator && (window.navigator as any).standalone === true;
+    const isStandalone = (window.matchMedia('(display-mode: standalone)').matches ||
+      ('standalone' in window.navigator && (window.navigator as any).standalone === true));
     
     // Log for debugging
     console.log("iOS Spotlight detection:", { 
