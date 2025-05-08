@@ -1,0 +1,10 @@
+{
+  "name": "home-inventory-app",
+  "deploy": {
+    "startCommand": "node server.js",
+    "healthCheckPath": "/",
+    "healthCheckTimeout": 60,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
