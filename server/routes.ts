@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { Client as NotionClient } from "@notionhq/client";
@@ -7,6 +7,7 @@ import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import compression from "compression";
+import path from "path";
 
 // Validate Notion connection credentials
 const notionConnectionSchema = z.object({
