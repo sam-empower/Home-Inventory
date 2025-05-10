@@ -23,6 +23,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/deploy/*', (req, res) => {
     res.sendFile(path.join(import.meta.dirname, '..', 'deploy', 'index.html'));
   });
+  
+  // Add diagnostics endpoint for troubleshooting production issues
+  app.get('/api/diagnostics/env', (req, res) => {
+    const requiredVars = ['NOTION_TOKEN', 'NOTION_DATABASE_ID'];
+    const variables: Record<string, boolean> = {};
+    
+    // Check for required environment variables
+    let allPresent = true;
+    requiredVars.forEach(varName => {
+      const isPresent = !!process.env[varName];
+      variables[varName] = isPresent;
+      if (!isPresent) {
+        allPresent = false;
+      }
+    });
+    
+    res.json({
+      success: allPresent,
+      message: allPresent 
+        ? 'All required environment variables are present' 
+        : 'Some required environment variables are missing',
+      variables
+    });
+  });
   // Add compression middleware for faster mobile loading
   app.use(compression());
 
