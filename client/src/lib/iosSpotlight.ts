@@ -22,6 +22,10 @@ interface SpotlightIndexItem {
 // Cache key for the IndexedDB database
 const SPOTLIGHT_CACHE_KEY = 'ios-spotlight-cache';
 
+// Apple specific constants for CSSearchableItem domains
+const APP_IDENTIFIER = 'com.notion-inventory.app'; 
+const DOMAIN_IDENTIFIER = 'com.notion-inventory.items';
+
 /**
  * Check if the current browser supports the CoreSpotlight API
  * 
@@ -93,8 +97,16 @@ export async function initSpotlightIntegration(): Promise<void> {
   // Setup listeners for deep linking
   setupDeepLinking();
   
-  // For testing purposes - skip the actual initialization
-  console.log('iOS Spotlight integration test mode - simulating successful initialization');
+  // Force iOS to rescan for Spotlight integration by creating a temporary entry
+  try {
+    await forceSpotlightRegistration();
+  } catch (error) {
+    console.warn('Error forcing Spotlight registration:', error);
+  }
+  
+  // For testing feedback - show initialization
+  console.log('iOS Spotlight integration initialized with domains:',
+    APP_IDENTIFIER, DOMAIN_IDENTIFIER);
   
   // Only try to use the actual API if it exists
   const hasSearchKit = typeof window !== 'undefined' && 
@@ -107,13 +119,63 @@ export async function initSpotlightIntegration(): Promise<void> {
       // @ts-ignore - CoreSpotlight
       const searchKit = (window as any).webkit.searchKit;
       
-      // Register domain identifiers
-      searchKit.registerDomainIdentifiers(['com.notiondb.item']);
+      // Register domain identifiers - using our app specific domain
+      searchKit.registerAppIdentifier(APP_IDENTIFIER);
+      searchKit.registerDomainIdentifiers([DOMAIN_IDENTIFIER]);
       
-      console.log('iOS Spotlight integration actually initialized');
+      // Important: Make sure iOS knows to index our app
+      searchKit.setIndexEnabled(true);
+      
+      console.log('iOS Spotlight integration fully initialized with WebKit SearchKit');
     } catch (error) {
       console.warn('Error initializing actual iOS Spotlight integration:', error);
       console.log('Continuing in test mode');
+    }
+  }
+}
+
+/**
+ * Forces iOS to recognize and register our app for Spotlight search
+ * by creating and immediately removing a test item
+ */
+async function forceSpotlightRegistration(): Promise<void> {
+  // Check if WebKit SearchKit is available
+  const hasSearchKit = typeof window !== 'undefined' && 
+    'webkit' in window && 
+    (window as any).webkit && 
+    'searchKit' in (window as any).webkit;
+    
+  if (hasSearchKit) {
+    try {
+      // @ts-ignore - CoreSpotlight
+      const searchKit = (window as any).webkit.searchKit;
+      
+      // Create a test entry that helps iOS recognize our app
+      const testItem = {
+        uniqueIdentifier: 'app-registration-test',
+        domainIdentifier: DOMAIN_IDENTIFIER,
+        title: 'Inventory App Registration',
+        description: 'This is a temporary item to register the app with Spotlight.',
+        contentURL: window.location.origin
+      };
+      
+      // Add and then remove the test item
+      await searchKit.indexSearchableItems({ items: [testItem] });
+      
+      // Wait a moment before removing so iOS has time to register
+      setTimeout(async () => {
+        try {
+          await searchKit.deleteSearchableItems({
+            identifiers: ['app-registration-test']
+          });
+        } catch (e) {
+          console.warn('Error removing test item:', e);
+        }
+      }, 500);
+      
+      console.log('Successfully forced Spotlight registration');
+    } catch (error) {
+      console.warn('Error with force registration:', error);
     }
   }
 }
@@ -300,15 +362,18 @@ async function indexInCoreSpotlight(items: SpotlightIndexItem[]): Promise<void> 
       // @ts-ignore - CoreSpotlight
       const searchKit = (window as any).webkit.searchKit;
       
-      // First, delete existing items
+      // Important: Make sure indexing is enabled
+      searchKit.setIndexEnabled(true);
+      
+      // First, delete existing items - use our domain identifier
       await searchKit.deleteSearchableItems({
-        domainIdentifier: 'com.notiondb.item'
+        domainIdentifier: DOMAIN_IDENTIFIER
       });
       
       // Then add new items
       const searchableItems = items.map(item => ({
         uniqueIdentifier: item.id,
-        domainIdentifier: 'com.notiondb.item',
+        domainIdentifier: DOMAIN_IDENTIFIER,
         title: item.title,
         description: item.description || '',
         keywords: item.keywords || [],
@@ -321,8 +386,25 @@ async function indexInCoreSpotlight(items: SpotlightIndexItem[]): Promise<void> 
         }
       }));
       
-      await searchKit.indexSearchableItems({ items: searchableItems });
-      console.log('Successfully indexed items in CoreSpotlight');
+      // Add batch size handling - iOS has limits on batch size
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < searchableItems.length; i += BATCH_SIZE) {
+        const batch = searchableItems.slice(i, i + BATCH_SIZE);
+        await searchKit.indexSearchableItems({ items: batch });
+        console.log(`Indexed batch of ${batch.length} items (${i + batch.length} of ${searchableItems.length})`);
+      }
+
+      // Add a system notification to trigger Spotlight update
+      if ('Notification' in window && Notification.permission === 'granted') {
+        // Create silent notification to help trigger Spotlight update
+        new Notification('Inventory items indexed', {
+          body: 'You can now search for items using iOS Spotlight Search',
+          silent: true,
+          requireInteraction: false
+        });
+      }
+      
+      console.log('Successfully indexed all items in CoreSpotlight');
     }
   } catch (error) {
     console.error('Error indexing in CoreSpotlight:', error);
@@ -340,7 +422,7 @@ export async function removeItemFromSpotlight(itemId: string): Promise<void> {
   
   try {
     // For testing/development - just log that we would remove this item
-    console.log(`Would remove item ${itemId} from Spotlight index`);
+    console.log(`Removing item ${itemId} from Spotlight index`);
     
     // Check if webkit.searchKit exists
     const hasSearchKit = typeof window !== 'undefined' && 
@@ -353,8 +435,13 @@ export async function removeItemFromSpotlight(itemId: string): Promise<void> {
       // @ts-ignore - CoreSpotlight
       const searchKit = (window as any).webkit.searchKit;
       
+      // Make sure indexing is enabled first
+      searchKit.setIndexEnabled(true);
+      
+      // Remove item by ID and domain
       await searchKit.deleteSearchableItems({
-        identifiers: [itemId]
+        identifiers: [itemId],
+        domainIdentifier: DOMAIN_IDENTIFIER
       });
       
       console.log('Successfully removed item from CoreSpotlight');
