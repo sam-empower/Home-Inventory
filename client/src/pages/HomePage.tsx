@@ -404,7 +404,6 @@ export default function HomePage() {
         onRefreshData={handleRefreshData}
         onOpenSettings={() => setIsSettingsOpen(true)}
         isRefreshing={isRefetching}
-        isSpotlightEnabled={isSpotlightSupported && isSpotlightInitialized}
       />
       
       {/* Add padding-top to accommodate fixed header */}

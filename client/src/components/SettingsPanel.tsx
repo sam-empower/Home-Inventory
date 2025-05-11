@@ -7,6 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Icons } from "@/lib/icons";
+import { useEffect, useState } from "react";
+import { isCoreSpotlightSupported } from "@/lib/iosSpotlight";
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -16,9 +18,30 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
   const { isConnected, databaseInfo, refresh } = useNotion();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, themeMode, setThemeMode } = useTheme();
   const { isOfflineMode, toggleOfflineMode, clearCache } = useOfflineMode();
   const { settings, updateSettings, saveSettings } = useSettings();
+  const [spotlightSupported, setSpotlightSupported] = useState(false);
+  const [spotlightEnabled, setSpotlightEnabled] = useState(false);
+  
+  // Check if Spotlight search is supported
+  useEffect(() => {
+    // Check for iOS device
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setSpotlightSupported(isIOS);
+    
+    // In production, use the full check:
+    const checkSpotlight = async () => {
+      try {
+        const isSupported = await isCoreSpotlightSupported();
+        setSpotlightEnabled(isSupported);
+      } catch (error) {
+        console.error('Error checking Spotlight support:', error);
+      }
+    };
+    
+    checkSpotlight();
+  }, []);
 
   return (
     <div className={`fixed inset-0 z-40 transform transition-transform ${isOpen ? '' : 'translate-x-full'}`}>
@@ -69,21 +92,67 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                     </p>
                   </div>
                 )}
+                
+                {/* Spotlight Status */}
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Spotlight Status</p>
+                  <div className="flex items-center mt-1.5">
+                    {spotlightSupported ? (
+                      <span className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 text-xs font-medium rounded-full">
+                        {spotlightEnabled ? "Enabled" : "Available"} 
+                      </span>
+                    ) : (
+                      <span className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 px-2 py-1 text-xs font-medium rounded-full">
+                        Not Available
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {spotlightSupported 
+                      ? "Your device supports iOS Spotlight search integration" 
+                      : "Spotlight search is only available on iOS devices"}
+                  </p>
+                </div>
               </div>
             </div>
             
             <div>
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Appearance</h3>
-              <div className="mt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Dark Mode</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Toggle dark/light mode</p>
-                  </div>
-                  <Switch
-                    checked={theme === 'dark'}
-                    onCheckedChange={toggleTheme}
-                  />
+              <div className="mt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="themeMode">Theme Mode</Label>
+                  <Select
+                    value={themeMode}
+                    onValueChange={(value) => setThemeMode(value as "light" | "dark" | "system")}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select theme mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="system">
+                        <div className="flex items-center">
+                          <Icons.laptop className="mr-2 h-4 w-4" />
+                          <span>System</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="light">
+                        <div className="flex items-center">
+                          <Icons.sun className="mr-2 h-4 w-4" />
+                          <span>Light</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="dark">
+                        <div className="flex items-center">
+                          <Icons.moon className="mr-2 h-4 w-4" />
+                          <span>Dark</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Current theme: {theme === 'dark' ? 'Dark' : 'Light'}
+                    {themeMode === 'system' && ' (from system preference)'}
+                  </p>
                 </div>
               </div>
             </div>
