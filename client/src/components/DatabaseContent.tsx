@@ -23,7 +23,7 @@ export function DatabaseContent({
   boxOptions = {} 
 }: DatabaseContentProps) {
   const { isOnline, isOfflineMode } = useOfflineMode();
-  
+
   // Get status badge color
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
@@ -43,7 +43,7 @@ export function DatabaseContent({
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {Array.from({ length: 8 }).map((_, index) => (
           <Card key={index} className="bg-white dark:bg-gray-800 shadow-sm max-w-[200px] mx-auto h-44">
             <CardContent className="p-4">
@@ -79,7 +79,7 @@ export function DatabaseContent({
       </div>
     );
   }
-  
+
   // Offline state
   if (!isOnline && isOfflineMode) {
     return (
@@ -91,8 +91,8 @@ export function DatabaseContent({
             <p className="text-xs text-yellow-700 dark:text-yellow-300">Showing cached data. Connect to the internet to get the latest updates.</p>
           </div>
         </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {items.map((item) => (
             <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} boxOptions={boxOptions} />
           ))}
@@ -103,7 +103,7 @@ export function DatabaseContent({
 
   // Regular content
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
       {items.map((item) => (
         <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} boxOptions={boxOptions} />
       ))}
@@ -122,11 +122,11 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
   // Get first image if available
   const hasImage = !!(item.images && item.images.length > 0);
   const firstImage = hasImage ? item.images![0] : null;
-  
+
   // Room and box information
   const roomName = item.roomName || 'No location';
   const hasBoxes = item.boxIds && item.boxIds.length > 0;
-  
+
   // Get box name from boxOptions if available
   let boxName = 'Storage Box'; // Default value
   if (hasBoxes && item.boxIds && item.boxIds.length > 0) {
@@ -135,10 +135,10 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
       boxName = boxOptions[boxId]; // Use the box name from options
     }
   }
-  
+
   return (
     <Card 
-      className={`ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden w-full max-w-[200px] ${hasImage ? 'h-[180px]' : 'h-[90px]'} mx-auto flex flex-col`}
+      className={`ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden w-full max-w-[200px] mx-auto flex flex-col`}
       onClick={() => onClick(item.id)}
     >
       {hasImage ? (
@@ -152,27 +152,27 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
               (e.target as HTMLElement).style.display = 'none';
             }}
           />
-          
+
           {/* iOS-style image overlay gradient */}
           <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
         </div>
       ) : (
         <div className="h-2 shrink-0" />
       )}
-      
+
       <CardContent className="p-3 flex-1 flex flex-col justify-between">
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-1">
             {item.title || 'Untitled'}
           </h3>
-          
+
           <div className="mt-1 flex flex-wrap gap-1">
             {roomName !== 'No location' && (
               <Badge className="ios-badge bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-0 px-2 py-0.5 text-xs">
                 {roomName}
               </Badge>
             )}
-            
+
             {hasBoxes && (
               <Badge className="ios-badge bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-0 px-2 py-0.5 text-xs">
                 <Icons.box className="h-2.5 w-2.5 mr-1 inline-block" />
@@ -181,7 +181,7 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
             )}
           </div>
         </div>
-        
+
         <div className="mt-auto pt-2 flex items-center justify-end">
           {/* Empty footer to maintain spacing */}
         </div>
