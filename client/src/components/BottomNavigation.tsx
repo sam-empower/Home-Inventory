@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Icons } from "@/lib/icons";
+import { Icons } from "@/lib/icons.ts";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useRoute } from "wouter";
 

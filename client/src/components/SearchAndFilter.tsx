@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Icons } from "@/lib/icons";
+import { Icons } from "@/lib/icons.ts";
 import {
   Popover,
   PopoverContent,
@@ -182,7 +182,7 @@ export function SearchAndFilter({ onSearch, onFilter, filterOptions }: SearchAnd
                   `}
                 >
                   {filter.name}: {getFilterDisplayValue(filter)}
-                  <Icons.plus className="h-3 w-3 ml-1 rotate-45 transition-transform" />
+                  <Icons.add className="h-3 w-3 ml-1 rotate-45 transition-transform" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-60 p-0 ios-modal border-none overflow-hidden">
