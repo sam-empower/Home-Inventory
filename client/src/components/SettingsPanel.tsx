@@ -56,7 +56,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium text-gray-900 dark:text-white">Settings</h2>
               <Button variant="ghost" size="sm" onClick={onClose}>
-                <Icons.close className="h-4 w-4" />
+                X
               </Button>
             </div>
           </div>
@@ -131,19 +131,16 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                     <SelectContent>
                       <SelectItem value="system">
                         <div className="flex items-center">
-                          <Icons.system className="mr-2 h-4 w-4" />
                           <span>System</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="light">
                         <div className="flex items-center">
-                          <Icons.sun className="mr-2 h-4 w-4" />
                           <span>Light</span>
                         </div>
                       </SelectItem>
                       <SelectItem value="dark">
                         <div className="flex items-center">
-                          <Icons.moon className="mr-2 h-4 w-4" />
                           <span>Dark</span>
                         </div>
                       </SelectItem>
@@ -209,7 +206,6 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                     onClick={clearCache}
                     className="inline-flex items-center"
                   >
-                    <Icons.trash className="mr-2 h-4 w-4" />
                     Clear Cached Data
                   </Button>
                 </div>
