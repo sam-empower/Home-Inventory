@@ -7,7 +7,7 @@ channel = "stable-24_05"
 packages = ["jq", "imagemagick"]
 
 [deployment]
-deploymentTarget = "scheduled"
+deploymentTarget = "cloudrun"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
