@@ -1,0 +1,82 @@
+{
+  "name": "Notion Database PWA",
+  "short_name": "NotionDB",
+  "description": "Mobile PWA to view and interact with Notion databases",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366F1",
+  "icons": [
+    {
+      "src": "/icon-192x192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192x192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple-touch-icon"
+    }
+  ],
+  "orientation": "portrait",
+  "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Open Database",
+      "short_name": "Database",
+      "description": "View your Notion database",
+      "url": "/"
+    },
+    {
+      "name": "Search Items",
+      "short_name": "Search",
+      "description": "Search your inventory items",
+      "url": "/?action=search"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://your-app-url.replit.app/"
+    }
+  ],
+  "scope_extensions": [
+    {
+      "origin": "*.spotlight.ios"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "handle_links": "preferred",
+  "scope": "/",
+  "capture_links": "existing-client-navigate"
+}

@@ -7,6 +7,11 @@ import { z } from "zod";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import compression from "compression";
+import express from "express";
+import path from "path";
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Validate Notion connection credentials
 const notionConnectionSchema = z.object({
@@ -16,11 +21,11 @@ const notionConnectionSchema = z.object({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Special route to serve test deployment app
-  app.use('/deploy', express.static(path.join(import.meta.dirname, '..', 'deploy')));
+  app.use('/deploy', express.static(path.join(__dirname, '..', 'deploy')));
   
   // Test deployment catch-all route for client-side routing
   app.get('/deploy/*', (req, res) => {
-    res.sendFile(path.join(import.meta.dirname, '..', 'deploy', 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'deploy', 'index.html'));
   });
   // Add compression middleware for faster mobile loading
   app.use(compression());
