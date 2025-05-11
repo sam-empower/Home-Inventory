@@ -59,7 +59,7 @@ export function DatabaseContent({
                 </div>
               )}
               
-              <CardContent className="p-3 flex-1 flex flex-col justify-between">
+              <CardContent className="px-3 pt-2 pb-3 flex-1 flex flex-col justify-between">
                 <div>
                   <Skeleton className="h-4 w-3/4 mb-2" />
                   
@@ -168,10 +168,10 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
           <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
         </div>
       ) : (
-        <div className="h-2 shrink-0" />
+        <div className="h-0 shrink-0" />
       )}
 
-      <CardContent className="p-3 flex-1 flex flex-col justify-between">
+      <CardContent className="px-3 pt-2 pb-3 flex-1 flex flex-col justify-between">
         <div>
           <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-1">
             {item.title || 'Untitled'}

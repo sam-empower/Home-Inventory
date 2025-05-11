@@ -83,7 +83,6 @@
   .ios-card {
     @apply rounded-2xl bg-white dark:bg-card shadow-sm;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    padding-top: 100px;
   }
 
   /* Image cards span 2 rows in the masonry grid */
@@ -114,7 +113,7 @@
 
   /* iOS-style list item */
   .ios-list-item {
-    @apply px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700;
+    @apply px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 dark:active:bg-gray-700;
   }
 
   /* iOS-style badge */
