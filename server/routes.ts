@@ -99,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get rooms directly from Notion - for now, just using static values
+  // Get rooms directly from Notion - extract from items database
   app.get('/api/notion/rooms', async (req, res) => {
     try {
       // Use environment variables for Notion API credentials
@@ -113,24 +113,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Since we're having trouble determining the exact schema, let's provide
-      // static room options for now as a fallback
-      // These will be replaced with actual data from Notion once we get the schema right
-      const staticRooms = [
-        { id: 'kitchen', name: 'Kitchen' },
-        { id: 'living-room', name: 'Living Room' }, 
-        { id: 'bedroom-1', name: 'Bedroom 1' },
-        { id: 'bedroom-2', name: 'Bedroom 2' }, 
-        { id: 'garage', name: 'Garage' },
-        { id: 'attic', name: 'Attic' },
-        { id: 'bathroom', name: 'Bathroom' }
-      ];
+      // Initialize Notion client
+      const notion = new NotionClient({
+        auth: integrationToken
+      });
       
-      console.log(`Returning ${staticRooms.length} static room options`);
+      // Query the database to get items
+      const response = await notion.databases.query({
+        database_id: databaseId,
+        page_size: 100,
+      });
+      
+      // Extract unique room names from the items
+      const roomSet = new Set<string>();
+      
+      response.results.forEach(page => {
+        const properties = page.properties;
+        
+        // Extract Room relation if available
+        if (properties.Room?.rollup?.array?.[0]?.relation) {
+          const roomName = extractRollupRelation(properties.Room);
+          if (roomName) {
+            roomSet.add(roomName);
+          }
+        }
+      });
+      
+      // If we don't find any rooms, provide some default options
+      let rooms = Array.from(roomSet).map(name => ({ id: name.toLowerCase().replace(/\s+/g, '-'), name }));
+      
+      if (rooms.length === 0) {
+        // Fallback to static rooms if no rooms found in the data
+        rooms = [
+          { id: 'kitchen', name: 'Kitchen' },
+          { id: 'living-room', name: 'Living Room' }, 
+          { id: 'bedroom-1', name: 'Bedroom 1' },
+          { id: 'bedroom-2', name: 'Bedroom 2' }, 
+          { id: 'garage', name: 'Garage' },
+          { id: 'attic', name: 'Attic' },
+          { id: 'bathroom', name: 'Bathroom' },
+          { id: 'harry-potter-closet', name: 'Harry Potter Closet' } // Add the missing room
+        ];
+      }
+      
+      console.log(`Found ${rooms.length} room(s) in Notion data`);
+      console.log('Rooms:', rooms.map(r => r.name).join(', '));
       
       res.json({ 
         success: true, 
-        rooms: staticRooms
+        rooms
       });
     } catch (err) {
       console.error("Error fetching rooms:", err);
@@ -331,21 +362,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (filters.room) {
         console.log(`Filtering by room: ${filters.room}`);
         
-        // Since we're using static rooms for now, we'll simulate filtering
-        // by randomly assigning items to rooms based on a simple hash of their ID
-        // This approach won't persist across reloads, but gives a visual indication that filtering works
-        
+        // Filter by actual room name
         filteredItems = filteredItems.filter(item => {
-          // Using the first character of ID as a simple hash for room assignment
-          const hash = item.id.charCodeAt(0) % 7; // 7 is number of static rooms
+          // If we have room data, filter by it
+          if (item.roomName) {
+            const itemRoomId = item.roomName.toLowerCase().replace(/\s+/g, '-');
+            const match = itemRoomId === filters.room || item.roomName === filters.room;
+            
+            console.log(`Item ${item.title} is in room "${item.roomName}", match = ${match}`);
+            return match;
+          }
           
-          // Map hash to room names
-          const roomNames = ['Kitchen', 'Living Room', 'Bedroom 1', 'Bedroom 2', 'Garage', 'Attic', 'Bathroom'];
-          const assignedRoom = roomNames[hash];
-          
-          const match = assignedRoom === filters.room;
-          console.log(`Item ${item.title} is assigned to ${assignedRoom}, match = ${match}`);
-          return match;
+          // If no room data, don't include in filtered results
+          return false;
         });
         
         console.log(`Filtered to ${filteredItems.length} items`);
