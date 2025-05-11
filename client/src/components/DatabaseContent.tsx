@@ -43,7 +43,7 @@ export function DatabaseContent({
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="masonry-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {Array.from({ length: 8 }).map((_, index) => {
           // Alternating between image and non-image cards in the skeleton
           const hasImageSkeleton = index % 3 !== 0; // Show 2/3 with images, 1/3 without
@@ -51,7 +51,7 @@ export function DatabaseContent({
           return (
             <Card 
               key={index} 
-              className={`bg-white dark:bg-gray-800 shadow-sm max-w-[200px] mx-auto ${hasImageSkeleton ? 'h-[180px]' : 'h-[85px]'} flex flex-col`}
+              className={`bg-white dark:bg-gray-800 shadow-sm max-w-[200px] mx-auto ${hasImageSkeleton ? 'h-[180px]' : 'h-[87px]'} flex flex-col`}
             >
               {hasImageSkeleton && (
                 <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 overflow-hidden shrink-0">
@@ -103,7 +103,7 @@ export function DatabaseContent({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="masonry-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {items.map((item) => (
             <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} boxOptions={boxOptions} />
           ))}
@@ -112,9 +112,9 @@ export function DatabaseContent({
     );
   }
 
-  // Regular content
+  // Regular content - using masonry grid with automatic placement
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div className="masonry-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
       {items.map((item) => (
         <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} boxOptions={boxOptions} />
       ))}
@@ -149,7 +149,7 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
 
   return (
     <Card 
-      className={`ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden w-full max-w-[200px] ${hasImage ? 'h-[180px]' : 'h-[85px]'} mx-auto flex flex-col`}
+      className={`ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden w-full max-w-[200px] ${hasImage ? 'h-[180px]' : 'h-[87px]'} mx-auto flex flex-col`}
       onClick={() => onClick(item.id)}
     >
       {hasImage ? (
