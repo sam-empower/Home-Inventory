@@ -44,23 +44,34 @@ export function DatabaseContent({
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <Card key={index} className="bg-white dark:bg-gray-800 shadow-sm max-w-[200px] mx-auto h-44">
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-start">
-                  <Skeleton className="h-5 w-3/4 mb-2" />
+        {Array.from({ length: 8 }).map((_, index) => {
+          // Alternating between image and non-image cards in the skeleton
+          const hasImageSkeleton = index % 3 !== 0; // Show 2/3 with images, 1/3 without
+          
+          return (
+            <Card 
+              key={index} 
+              className={`bg-white dark:bg-gray-800 shadow-sm max-w-[200px] mx-auto ${hasImageSkeleton ? 'h-[180px]' : 'h-[85px]'} flex flex-col`}
+            >
+              {hasImageSkeleton && (
+                <div className="w-full h-24 bg-gray-100 dark:bg-gray-700 overflow-hidden shrink-0">
+                  <Skeleton className="h-full w-full" />
                 </div>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
-                <div className="pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-between">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-4 w-16" />
+              )}
+              
+              <CardContent className="p-3 flex-1 flex flex-col justify-between">
+                <div>
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                  
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <Skeleton className="h-3 w-16 rounded-full" />
+                    <Skeleton className="h-3 w-12 rounded-full" />
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     );
   }
