@@ -138,7 +138,7 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
   
   return (
     <Card 
-      className={`ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden w-full max-w-[200px] ${hasImage ? 'h-[180px]' : 'h-[90px]'} mx-auto flex flex-col`}
+      className="ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden w-full max-w-[200px] h-[180px] mx-auto flex flex-col"
       onClick={() => onClick(item.id)}
     >
       {hasImage ? (
