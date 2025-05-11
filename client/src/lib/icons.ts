@@ -27,7 +27,9 @@ import {
   MoreVertical,
   Moon,
   Sun,
-  Laptop
+  Laptop,
+  Zap,
+  Hammer
 } from "lucide-react";
 
 export const Icons = {
@@ -59,5 +61,7 @@ export const Icons = {
   more: MoreVertical,
   moon: Moon,
   sun: Sun,
-  system: Laptop
+  system: Laptop,
+  bolt: Zap,
+  hammer: Hammer
 };

@@ -56,7 +56,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium text-gray-900 dark:text-white">Settings</h2>
               <Button variant="ghost" size="sm" onClick={onClose}>
-                <Icons.x className="h-4 w-4" />
+                <Icons.close className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -131,7 +131,7 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
                     <SelectContent>
                       <SelectItem value="system">
                         <div className="flex items-center">
-                          <Icons.laptop className="mr-2 h-4 w-4" />
+                          <Icons.system className="mr-2 h-4 w-4" />
                           <span>System</span>
                         </div>
                       </SelectItem>
