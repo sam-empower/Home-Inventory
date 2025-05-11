@@ -99,17 +99,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get rooms directly from Notion - extract from items database
+  // Get rooms directly from Notion Rooms database
   app.get('/api/notion/rooms', async (req, res) => {
     try {
       // Use environment variables for Notion API credentials
       const integrationToken = process.env.NOTION_TOKEN;
-      const databaseId = process.env.NOTION_DATABASE_ID;
+      const roomsDatabaseId = process.env.NOTION_ROOMS_DATABASE_ID;
       
-      if (!integrationToken || !databaseId) {
+      if (!integrationToken || !roomsDatabaseId) {
         return res.status(500).json({ 
           success: false, 
-          message: "Server configuration error: Notion credentials missing" 
+          message: "Server configuration error: Notion credentials or Rooms database ID missing" 
         });
       }
       
@@ -118,42 +118,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         auth: integrationToken
       });
       
-      // Query the database to get items
+      console.log(`Fetching rooms from Notion database ID: ${roomsDatabaseId}`);
+      
+      // Query the rooms database directly
       const response = await notion.databases.query({
-        database_id: databaseId,
+        database_id: roomsDatabaseId,
         page_size: 100,
       });
       
-      // Extract unique room names from the items
-      const roomSet = new Set<string>();
-      
-      response.results.forEach(page => {
-        const properties = page.properties;
-        
-        // Extract Room relation if available
-        if (properties.Room?.rollup?.array?.[0]?.relation) {
-          const roomName = extractRollupRelation(properties.Room);
-          if (roomName) {
-            roomSet.add(roomName);
-          }
-        }
+      // Extract room names from the database entries
+      const rooms = response.results.map(page => {
+        const title = extractTitle(page.properties);
+        return {
+          id: title.toLowerCase().replace(/\s+/g, '-'),
+          name: title
+        };
       });
       
-      // If we don't find any rooms, provide some default options
-      let rooms = Array.from(roomSet).map(name => ({ id: name.toLowerCase().replace(/\s+/g, '-'), name }));
-      
       if (rooms.length === 0) {
+        console.warn("No rooms found in the Notion Rooms database");
         // Fallback to static rooms if no rooms found in the data
-        rooms = [
-          { id: 'kitchen', name: 'Kitchen' },
-          { id: 'living-room', name: 'Living Room' }, 
-          { id: 'bedroom-1', name: 'Bedroom 1' },
-          { id: 'bedroom-2', name: 'Bedroom 2' }, 
-          { id: 'garage', name: 'Garage' },
-          { id: 'attic', name: 'Attic' },
-          { id: 'bathroom', name: 'Bathroom' },
-          { id: 'harry-potter-closet', name: 'Harry Potter Closet' } // Add the missing room
-        ];
+        return res.json({
+          success: true,
+          rooms: [
+            { id: 'kitchen', name: 'Kitchen' },
+            { id: 'living-room', name: 'Living Room' }, 
+            { id: 'bedroom-1', name: 'Bedroom 1' },
+            { id: 'bedroom-2', name: 'Bedroom 2' }, 
+            { id: 'garage', name: 'Garage' },
+            { id: 'attic', name: 'Attic' },
+            { id: 'bathroom', name: 'Bathroom' },
+            { id: 'harry-potter-closet', name: 'Harry Potter Closet' } // Add the missing room
+          ]
+        });
       }
       
       console.log(`Found ${rooms.length} room(s) in Notion data`);

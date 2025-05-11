@@ -15,28 +15,40 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, string | null>>({});
 
-  // Room filter options
+  // Initial filter options
   const [filterOptions, setFilterOptions] = useState<FilterOption[]>([
     { 
       id: "room", 
       type: "room", 
       name: "Room", 
       value: null, 
-      available: ['All', 'Kitchen', 'Living Room', 'Bedroom 1', 'Bedroom 2', 'Garage', 'Attic', 'Bathroom']
+      available: ['All']
     },
   ]);
 
-  // Fetch rooms directly from API
+  // Fetch rooms directly from the Notion Rooms database
   const { 
     data: rooms = [], 
-    isLoading: isLoadingRooms 
+    isLoading: isLoadingRooms,
+    isError: isRoomsError,
+    refetch: refetchRooms
   } = useNotionRooms();
+
+  // Log rooms data for debugging
+  useEffect(() => {
+    if (rooms && rooms.length > 0) {
+      console.log('Rooms loaded from Notion:', rooms.map(r => r.name).join(', '));
+    }
+    if (isRoomsError) {
+      console.error('Error loading rooms from Notion');
+    }
+  }, [rooms, isRoomsError]);
 
   // Update room filter options when rooms data is loaded
   useEffect(() => {
     if (rooms && rooms.length > 0) {
-      // Extract room names
-      const roomNames = rooms.map(room => room.name);
+      // Extract room names and sort them alphabetically
+      const roomNames = rooms.map(room => room.name).sort();
       
       // Update filter options for rooms
       setFilterOptions(current => {
@@ -55,8 +67,12 @@ export default function InventoryPage() {
 
   const handleRefreshData = async () => {
     setIsRefreshing(true);
-    await refreshConnection();
-    setTimeout(() => setIsRefreshing(false), 1000); // Simulate refresh time
+    // Refresh both the connection and the rooms data
+    await Promise.all([
+      refreshConnection(),
+      refetchRooms()
+    ]);
+    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   const handleSearch = (term: string) => {
