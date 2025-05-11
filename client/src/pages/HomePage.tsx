@@ -1,437 +1,120 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState } from "react";
 import { useNotion } from "@/context/NotionContext";
-import { useNotionDatabase, useNotionDatabaseItem } from "@/hooks/useNotionDatabase";
-import { useNotionApi } from "@/hooks/useNotionApi";
-import { useNotionRooms } from "@/hooks/useNotionRooms";
-import { useSettings } from "@/hooks/useSettings";
-import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { AppHeader } from "@/components/AppHeader";
-import { SearchAndFilter, FilterOption } from "@/components/SearchAndFilter";
-import { DatabaseContent } from "@/components/DatabaseContent";
-import { ItemDetailModal } from "@/components/ItemDetailModal";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { 
-  isCoreSpotlightSupported, 
-  indexItemsForSpotlight, 
-  initSpotlightIntegration 
-} from "@/lib/iosSpotlight";
-import { updateSpotlightItemsInSW } from "@/lib/serviceWorkerRegistration";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Icons } from "@/lib/icons";
 
 export default function HomePage() {
   const { isConnected, isLoading: isConnectionLoading, refresh: refreshConnection } = useNotion();
-  const { settings } = useSettings();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<Record<string, string | null>>({});
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [isSpotlightSupported, setIsSpotlightSupported] = useState(false);
-  const [isSpotlightInitialized, setIsSpotlightInitialized] = useState(false);
-  const lastIndexedItems = useRef<string[]>([]);
-  
-  // Filter options for box and room
-  const [filterOptions, setFilterOptions] = useState<FilterOption[]>([
-    { id: "box", type: "box", name: "Box", value: null, available: [] },
-    { 
-      id: "room", 
-      type: "room", 
-      name: "Room", 
-      value: null, 
-      available: ['All', 'Kitchen', 'Living Room', 'Bedroom 1', 'Bedroom 2', 'Garage', 'Attic', 'Bathroom']
-    },
-  ]);
-  
-  // Track unique box and room values
-  const [boxOptions, setBoxOptions] = useState<Record<string, string>>({});
-  const [roomOptions, setRoomOptions] = useState<string[]>([]);
-  const [isLoadingBoxes, setIsLoadingBoxes] = useState(false);
-  
-  // Fetch database data with search and filters
-  const { 
-    data: items, 
-    isLoading, 
-    isRefetching,
-    refreshData 
-  } = useNotionDatabase({
-    search: searchTerm,
-    filters: filters
-  });
-  
-  // Fetch detail for selected item
-  const { 
-    data: selectedItem,
-    isLoading: isItemLoading 
-  } = useNotionDatabaseItem(selectedItemId);
-  
-  // Auto-refresh setup
-  useEffect(() => {
-    let intervalId: number | null = null;
-    
-    if (isConnected && settings.autoRefresh) {
-      intervalId = window.setInterval(() => {
-        refreshData();
-      }, settings.refreshInterval * 1000);
-    }
-    
-    return () => {
-      if (intervalId !== null) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [isConnected, settings.autoRefresh, settings.refreshInterval, refreshData]);
-  
-  // Pull-to-refresh setup with improved iOS-like elasticity
-  useEffect(() => {
-    // We'll implement a more subtle, iOS-like pull-to-refresh
-    let touchStartY = 0;
-    const pullThreshold = 60; // Lower threshold for more natural feeling
-    let isPulling = false;
-    let indicator: HTMLDivElement | null = null;
-    let pullDistance = 0;
-    
-    const createIndicator = () => {
-      if (indicator) return;
-      
-      indicator = document.createElement('div');
-      indicator.className = 'fixed top-0 left-0 right-0 h-12 flex items-center justify-center bg-transparent transform -translate-y-full transition-transform z-50';
-      indicator.innerHTML = `
-        <div class="flex items-center rounded-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-md px-4 py-1.5 shadow-sm">
-          <svg class="mr-2 h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          <span class="text-xs font-medium">Release to refresh</span>
-        </div>
-      `;
-      document.body.appendChild(indicator);
-    };
-    
-    const removeIndicator = () => {
-      if (indicator) {
-        document.body.removeChild(indicator);
-        indicator = null;
-      }
-    };
-    
-    const handleTouchStart = (e: TouchEvent) => {
-      // Only enable pull-to-refresh at the top of the page
-      if (window.scrollY <= 0) {
-        createIndicator();
-        touchStartY = e.touches[0].clientY;
-        isPulling = true;
-        pullDistance = 0;
-      }
-    };
-    
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling || !indicator) return;
-      
-      const touchY = e.touches[0].clientY;
-      pullDistance = touchY - touchStartY;
-      
-      // Apply resistance - the further you pull, the harder it gets
-      const dampedDistance = Math.pow(pullDistance, 0.8);
-      
-      if (pullDistance > 0) {
-        // Use a more elastic, dampened pull
-        const translateY = Math.min(dampedDistance - 40, 60);
-        indicator.style.transform = `translateY(${translateY}px)`;
-        
-        // Only prevent default if we're actually pulling down
-        if (pullDistance > 10) {
-          e.preventDefault();
-        }
-      }
-    };
-    
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (!isPulling || !indicator) return;
-      
-      if (pullDistance > pullThreshold) {
-        // Trigger refresh with a spring-back animation
-        indicator.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.9, 0.1, 1.0)';
-        indicator.style.transform = 'translateY(-100%)';
-        refreshData();
-      } else {
-        // Spring back animation
-        indicator.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.9, 0.1, 1.0)';
-        indicator.style.transform = 'translateY(-100%)';
-      }
-      
-      // Remove indicator after animation
-      setTimeout(removeIndicator, 300);
-      isPulling = false;
-    };
-    
-    // Only add event listeners if connected
-    if (isConnected) {
-      // Use passive for touchstart but not for move to allow more natural scrolling
-      document.addEventListener('touchstart', handleTouchStart, { passive: true });
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd, { passive: true });
-    }
-    
-    return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-      removeIndicator();
-    };
-  }, [isConnected, refreshData]);
-  
-  const handleSearch = useCallback((term: string) => {
-    setSearchTerm(term);
-  }, []);
-  
-  const handleFilter = useCallback((newFilters: Record<string, string | null>) => {
-    // Process filters before setting state
-    const processedFilters: Record<string, string | null> = {};
-    
-    // Handle each filter type appropriately
-    Object.entries(newFilters).forEach(([key, value]) => {
-      if (key === 'room' && value && value !== 'All') {
-        // Room name can be sent directly - it will be handled client-side
-        // in the server response filter logic
-        processedFilters.room = value;
-        console.log(`Setting room filter to: ${value}`);
-      }
-      else if (key === 'box' && value && value !== 'All') {
-        // For box filter, we need to find the box ID by title
-        // Find the box ID by name
-        const boxId = Object.entries(boxOptions).find(([id, title]) => title === value)?.[0] || null;
-        if (boxId) {
-          processedFilters.box = boxId;
-        }
-      }
-      else if (value && value !== 'All') {
-        processedFilters[key] = value;
-      }
-    });
-    
-    // Console log for debugging
-    console.log("Applied filters:", processedFilters);
-    
-    setFilters(processedFilters);
-  }, [boxOptions]);
-  
-  const handleItemClick = useCallback((id: string) => {
-    setSelectedItemId(id);
-  }, []);
-  
-  const handleCloseItemDetail = useCallback(() => {
-    setSelectedItemId(null);
-  }, []);
-  
-  // Get box details by ID
-  const { notionRequest } = useNotionApi();
-  
-  const fetchBoxDetails = useCallback(async (boxId: string) => {
-    try {
-      const response = await notionRequest('GET', `/api/notion/database/${boxId}`);
-      if (response && response.id && response.title) {
-        return { 
-          id: response.id, 
-          title: response.title,
-          roomName: response.roomName || "" 
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error(`Error fetching box ${boxId}:`, error);
-      return null;
-    }
-  }, [notionRequest]);
-  
-  // Fetch rooms directly from API
-  const { 
-    data: rooms = [], 
-    isLoading: isLoadingRooms 
-  } = useNotionRooms();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Update room filter options when rooms data is loaded
-  useEffect(() => {
-    if (rooms && rooms.length > 0) {
-      // Extract room names
-      const roomNames = rooms.map(room => room.name);
-      setRoomOptions(roomNames);
-
-      // Update filter options for rooms
-      setFilterOptions(current => {
-        return current.map(filter => {
-          if (filter.id === 'room') {
-            return {
-              ...filter,
-              available: ['All', ...roomNames]
-            };
-          }
-          return filter;
-        });
-      });
-      
-      console.log("Updated room options from API:", roomNames);
-    }
-  }, [rooms]);
-  
-  // Update box filter options based on items
-  useEffect(() => {
-    if (items && items.length > 0) {
-      // Collect unique box IDs
-      const boxIds: Set<string> = new Set();
-      
-      // Get unique box IDs from items
-      items.forEach(item => {
-        if (item.boxIds && item.boxIds.length > 0) {
-          item.boxIds.forEach(id => boxIds.add(id));
-        }
-      });
-      
-      // Fetch box details for each unique box ID
-      const fetchBoxes = async () => {
-        setIsLoadingBoxes(true);
-        
-        const boxMap: Record<string, string> = {};
-        
-        // Collect box data
-        const boxDetailsArray = await Promise.all(
-          Array.from(boxIds).map(boxId => fetchBoxDetails(boxId))
-        );
-        
-        boxDetailsArray.forEach(boxDetails => {
-          if (boxDetails) {
-            // Store box id -> title mapping
-            boxMap[boxDetails.id] = boxDetails.title;
-          }
-        });
-        
-        // Update state with box data
-        setBoxOptions(boxMap);
-        
-        // Update filter options for boxes
-        setFilterOptions(current => {
-          return current.map(filter => {
-            if (filter.id === 'box') {
-              return {
-                ...filter,
-                available: ['All', ...Object.values(boxMap)]
-              };
-            }
-            return filter;
-          });
-        });
-        
-        setIsLoadingBoxes(false);
-      };
-      
-      if (boxIds.size > 0) {
-        fetchBoxes();
-      }
-    }
-  }, [items, fetchBoxDetails]);
-  
-  // Initialize iOS Spotlight integration
-  useEffect(() => {
-    const checkSpotlightSupport = async () => {
-      const supported = isCoreSpotlightSupported();
-      setIsSpotlightSupported(supported);
-      
-      if (supported && !isSpotlightInitialized) {
-        try {
-          await initSpotlightIntegration();
-          setIsSpotlightInitialized(true);
-          console.log('iOS Spotlight integration initialized');
-          
-          // Handle deep links from Spotlight search
-          window.addEventListener('openItemDetail', ((event: CustomEvent) => {
-            if (event.detail && event.detail.itemId) {
-              setSelectedItemId(event.detail.itemId);
-            }
-          }) as EventListener);
-        } catch (error) {
-          console.error('Failed to initialize Spotlight integration:', error);
-        }
-      }
-    };
-    
-    checkSpotlightSupport();
-  }, [isSpotlightInitialized]);
-  
-  // Index items in iOS Spotlight search when they change
-  useEffect(() => {
-    if (isSpotlightSupported && isSpotlightInitialized && items && items.length > 0) {
-      // Check if items have changed since last indexing
-      const itemIds = items.map(item => item.id);
-      const itemsChanged = JSON.stringify(itemIds) !== JSON.stringify(lastIndexedItems.current);
-      
-      if (itemsChanged) {
-        console.log('Indexing items for iOS Spotlight search...');
-        
-        // Update Spotlight index
-        indexItemsForSpotlight(items)
-          .then(() => {
-            // Also update SW cache
-            updateSpotlightItemsInSW(items);
-            // Save indexed item IDs
-            lastIndexedItems.current = itemIds;
-            console.log(`Indexed ${items.length} items for iOS Spotlight search`);
-          })
-          .catch(error => {
-            console.error('Error indexing items for Spotlight:', error);
-          });
-      }
-    }
-  }, [items, isSpotlightSupported, isSpotlightInitialized]);
-  
-  // Handle refresh data from app header
-  const handleRefreshData = useCallback(() => {
-    refreshConnection();
-    refreshData();
-    
-    // Re-index items for Spotlight search if supported
-    if (isSpotlightSupported && isSpotlightInitialized && items && items.length > 0) {
-      indexItemsForSpotlight(items)
-        .then(() => {
-          console.log(`Re-indexed ${items.length} items for iOS Spotlight search`);
-        })
-        .catch(error => {
-          console.error('Error re-indexing items for Spotlight:', error);
-        });
-    }
-  }, [refreshConnection, refreshData, isSpotlightSupported, isSpotlightInitialized, items]);
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    await refreshConnection();
+    setTimeout(() => setIsRefreshing(false), 1000); // Simulate refresh time
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <AppHeader 
         onRefreshData={handleRefreshData}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        isRefreshing={isRefetching}
+        isRefreshing={isRefreshing}
       />
       
       {/* Add padding-top to accommodate fixed header */}
       <main className="flex-1 container mx-auto px-4 py-4 pb-20 pt-16">
-        {isConnected && (
-          <>
-            <SearchAndFilter 
-              onSearch={handleSearch}
-              onFilter={handleFilter}
-              filterOptions={filterOptions}
-            />
-            
-            <DatabaseContent 
-              items={items}
-              isLoading={isLoading}
-              isRefetching={isRefetching}
-              onItemClick={handleItemClick}
-              boxOptions={boxOptions}
-            />
-          </>
-        )}
+        {/* Hero Header Section */}
+        <div className="relative rounded-lg overflow-hidden mb-6 shadow-md">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary-dark/80 z-10"></div>
+          <div className="bg-gray-800 h-48"></div>
+          <div className="absolute inset-0 z-20 flex flex-col justify-center items-center text-white p-4">
+            <h1 className="text-3xl font-bold mb-2">Hopkins Home</h1>
+            <p className="text-center max-w-md">Intelligent room and inventory management for your home</p>
+          </div>
+        </div>
+
+        {/* Statistics Grid */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          {/* Inventory Status */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <Icons.packageOpen className="w-4 h-4 mr-2" />
+                Inventory Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-2xl font-bold">4</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Rooms</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">12</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Boxes</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">48</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Items</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Maintenance Status */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <Icons.clipboardList className="w-4 h-4 mr-2" />
+                Maintenance Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-2xl font-bold">3</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">This Week</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">8</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">This Month</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Expenses */}
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Icons.wallet className="w-4 h-4 mr-2" />
+              Expenses
+            </CardTitle>
+            <CardDescription>Year to date spending</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">$2,345.00</p>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full mt-2">
+              <div className="bg-primary h-2 rounded-full" style={{ width: '65%' }}></div>
+            </div>
+            <div className="flex justify-between text-xs mt-1">
+              <span>Budget: $3,600.00</span>
+              <span>65% Used</span>
+            </div>
+          </CardContent>
+        </Card>
         
+        {/* Not connected state */}
         {!isConnected && (
           <div className="py-16 flex flex-col items-center justify-center">
             <div className="bg-primary-100 dark:bg-primary-900 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-              <svg className="h-8 w-8 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+              <Icons.alert className="h-8 w-8 text-primary-600 dark:text-primary-400" />
             </div>
             <h3 className="text-xl font-medium text-gray-900 dark:text-white">
               {isConnectionLoading ? "Connecting to Notion..." : "Connection Error"}
@@ -444,31 +127,23 @@ export default function HomePage() {
             {!isConnectionLoading && (
               <button 
                 className="mt-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-                onClick={refreshConnection}
+                onClick={() => refreshConnection()}
               >
-                Retry Connection
+                Retry connection
               </button>
             )}
           </div>
         )}
       </main>
       
-      <ItemDetailModal 
-        isOpen={!!selectedItemId}
-        onClose={handleCloseItemDetail}
-        item={selectedItem || null}
-        isLoading={isItemLoading}
-      />
-      
       <SettingsPanel 
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
         onShowConnectionSetup={() => {}}
       />
       
-      <BottomNavigation />
-      
       <InstallPrompt />
+      <BottomNavigation />
     </div>
   );
 }

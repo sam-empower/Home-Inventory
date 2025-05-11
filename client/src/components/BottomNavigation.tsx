@@ -2,34 +2,42 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/lib/icons";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation, useRoute } from "wouter";
 
-type Section = "main" | "favorites" | "recent" | "profile";
+type Section = "home" | "inventory" | "tasks" | "expenses";
 
 interface BottomNavigationProps {
   currentSection?: Section;
-  onChangeSection?: (section: Section) => void;
 }
 
 export function BottomNavigation({ 
-  currentSection = "main", 
-  onChangeSection 
+  currentSection = "home"
 }: BottomNavigationProps) {
-  const [activeSection, setActiveSection] = useState<Section>(currentSection);
+  const [location, setLocation] = useLocation();
+  const [isHomeActive] = useRoute("/");
+  const [isInventoryActive] = useRoute("/inventory*");
+  const [isTasksActive] = useRoute("/tasks*");
+  const [isExpensesActive] = useRoute("/expenses*");
+  
+  const activeSection = isHomeActive ? "home" :
+                       isInventoryActive ? "inventory" :
+                       isTasksActive ? "tasks" :
+                       isExpensesActive ? "expenses" : 
+                       "home";
+  
   const { toast } = useToast();
 
-  const handleSectionChange = (section: Section) => {
-    setActiveSection(section);
-    
-    if (section !== "main") {
-      // Only the main section is implemented in this demo
+  const navigateTo = (path: string, section: Section) => {
+    if (section !== "home" && section !== "inventory") {
+      // Only show toast for unimplemented sections
       toast({
-        title: "Not implemented",
-        description: `The ${section} view is not implemented in this demo`,
+        title: "Coming soon",
+        description: `The ${section} section is under development`,
         variant: "default",
       });
-    } else if (onChangeSection) {
-      onChangeSection(section);
+      return;
     }
+    setLocation(path);
   };
 
   return (
@@ -37,31 +45,31 @@ export function BottomNavigation({
       <div className="max-w-md mx-auto px-4">
         <div className="flex justify-around">
           <NavButton 
-            icon={<Icons.database className="h-5 w-5" />}
-            label="All Items"
-            isActive={activeSection === "main"}
-            onClick={() => handleSectionChange("main")}
+            icon={<Icons.home className="h-5 w-5" />}
+            label="Home"
+            isActive={activeSection === "home"}
+            onClick={() => navigateTo("/", "home")}
           />
           
           <NavButton 
-            icon={<Icons.star className="h-5 w-5" />}
-            label="Favorites"
-            isActive={activeSection === "favorites"}
-            onClick={() => handleSectionChange("favorites")}
+            icon={<Icons.packageOpen className="h-5 w-5" />}
+            label="Inventory"
+            isActive={activeSection === "inventory"}
+            onClick={() => navigateTo("/inventory", "inventory")}
           />
           
           <NavButton 
-            icon={<Icons.history className="h-5 w-5" />}
-            label="Recent"
-            isActive={activeSection === "recent"}
-            onClick={() => handleSectionChange("recent")}
+            icon={<Icons.clipboardList className="h-5 w-5" />}
+            label="Tasks"
+            isActive={activeSection === "tasks"}
+            onClick={() => navigateTo("/tasks", "tasks")}
           />
           
           <NavButton 
-            icon={<Icons.user className="h-5 w-5" />}
-            label="Profile"
-            isActive={activeSection === "profile"}
-            onClick={() => handleSectionChange("profile")}
+            icon={<Icons.wallet className="h-5 w-5" />}
+            label="Expenses"
+            isActive={activeSection === "expenses"}
+            onClick={() => navigateTo("/expenses", "expenses")}
           />
         </div>
         {/* iOS Home indicator space */}

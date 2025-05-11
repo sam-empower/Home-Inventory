@@ -8,6 +8,9 @@ import { NotionProvider } from "@/context/NotionContext";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/HomePage";
 import DiagnosticsPage from "@/pages/DiagnosticsPage";
+import InventoryPage from "@/pages/inventory/InventoryPage";
+import TasksPage from "@/pages/tasks/TasksPage";
+import ExpensesPage from "@/pages/expenses/ExpensesPage";
 import { useState, useEffect } from "react";
 
 // Custom hook for determining the base path in any environment
@@ -38,11 +41,11 @@ function Router() {
     <WouterRouter base={basePath}>
       <Switch>
         <Route path="/" component={HomePage} />
+        <Route path="/inventory" component={InventoryPage} />
+        <Route path="/tasks" component={TasksPage} />
+        <Route path="/expenses" component={ExpensesPage} />
         <Route path="/diagnostics" component={DiagnosticsPage} />
         <Route path="/deploy" component={HomePage} />
-        {/* Add specific routes here if needed */}
-        <Route path="/:path*" component={HomePage} />
-        {/* This is a fallback that should never be reached due to the catch-all above */}
         <Route component={NotFound} />
       </Switch>
     </WouterRouter>
