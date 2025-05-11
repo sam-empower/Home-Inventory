@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNotion } from "@/context/NotionContext";
 import { AppHeader } from "@/components/AppHeader";
 import { SettingsPanel } from "@/components/SettingsPanel";
@@ -33,7 +33,7 @@ export default function InventoryPage() {
   } = useNotionRooms();
 
   // Update room filter options when rooms data is loaded
-  useState(() => {
+  useEffect(() => {
     if (rooms && rooms.length > 0) {
       // Extract room names
       const roomNames = rooms.map(room => room.name);
@@ -51,7 +51,7 @@ export default function InventoryPage() {
         });
       });
     }
-  });
+  }, [rooms]);
 
   const handleRefreshData = async () => {
     setIsRefreshing(true);
