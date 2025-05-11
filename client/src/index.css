@@ -85,12 +85,12 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     padding-top: 100px;
   }
-  
+
   /* Image cards span 2 rows in the masonry grid */
   .ios-card[class*="h-[180px]"] {
     grid-row: span 2;
   }
-  
+
   /* iOS navigation bar style */
   .ios-nav {
     @apply bg-white/80 dark:bg-black/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800;
@@ -101,33 +101,33 @@
     transform: translateZ(0);
     width: 100%;
   }
-  
+
   /* iOS-style buttons */
   .ios-button {
     @apply rounded-xl bg-primary text-white font-medium px-5 py-3 active:scale-95 transition-all duration-150;
   }
-  
+
   /* iOS bottom sheet modal */
   .ios-modal {
     @apply rounded-t-2xl bg-white dark:bg-gray-900 shadow-lg;
   }
-  
+
   /* iOS-style list item */
   .ios-list-item {
-    @apply px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700;
+    @apply px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 active:bg-gray-5 dark:active:bg-gray-700;
   }
-  
+
   /* iOS-style badge */
   .ios-badge {
     @apply rounded-full text-xs font-medium px-2 py-0.5;
   }
-  
+
   /* iOS-style checkbox */
   [data-state="checked"].ios-checkbox {
     @apply bg-primary border-primary;
     animation: ios-checkbox-check 0.2s ease-in-out;
   }
-  
+
   @keyframes ios-checkbox-check {
     0% {
       transform: scale(0.8);
