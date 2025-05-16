@@ -78,10 +78,20 @@ async function getItemsByRoom(roomId) {
     
     // Query all items from the Notion database
     const response = await notion.databases.query({
-      database_id: process.env.NOTION_ITEMS_DATABASE_ID || ""
+      database_id: process.env.NOTION_ITEMS_DATABASE_ID || "",
+      page_size: 100 // Request a larger page size to get more items
     });
     
     console.log(`Retrieved ${response.results.length} total items from database`);
+    
+    // Debug: Check the schema of the first item to understand the database structure
+    if (response.results.length > 0) {
+      const firstItem = response.results[0];
+      console.log(`Database schema sample - Properties of first item:`);
+      for (const [key, value] of Object.entries(firstItem.properties)) {
+        console.log(`Property: ${key}, Type: ${value.type}`);
+      }
+    }
     
     // Filter and transform items based on the room ID
     let filteredItems = [];
