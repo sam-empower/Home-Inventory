@@ -74,10 +74,18 @@ async function getRooms() {
  */
 async function getItemsByRoom(roomId) {
   try {
-    console.log(`Fetching items for room: ${roomId}`);
+    console.log(`Fetching items for room: ${roomId} using database ID: ${process.env.NOTION_ITEMS_DATABASE_ID}`);
     
-    // Query the items database with filter for the specified room
-    // Here we assume there's a relation property linking items to rooms
+    // If this is one of our predefined roomIds, use our sample data
+    if (roomId === 'bedroom' || roomId === 'master-bathroom' || 
+        roomId === 'office' || roomId === 'coffee-room' || 
+        roomId === 'living-area' || roomId === 'guest-suite' || 
+        roomId === 'harry-potter-closet') {
+      console.log(`Using sample data for predefined room: ${roomId}`);
+      return generateSampleItemsForRoom(roomId);
+    }
+    
+    // For actual Notion database IDs, query the database
     const response = await notion.databases.query({
       database_id: process.env.NOTION_ITEMS_DATABASE_ID || "",
       filter: {
