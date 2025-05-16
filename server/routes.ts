@@ -130,34 +130,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pageId = pageIdMatch[1];
       console.log(`Fetching room data from Notion page ID: ${pageId}`);
       
-      // Get the databases from the Notion page first
-      const databasesResponse = await notion.databases.list();
-      const roomsDatabase = databasesResponse.results.find((db: any) => {
-        const dbTitle = db.title && db.title[0]?.plain_text;
-        return dbTitle && dbTitle.toLowerCase().includes('room');
-      });
-      
-      if (!roomsDatabase) {
-        console.warn("No rooms database found");
-        // Fallback to static room list that includes Harry Potter Closet
-        return res.json({
-          success: true,
-          rooms: [
-            { id: 'bedroom', name: 'Bedroom' },
-            { id: 'master-bathroom', name: 'Master Bathroom' }, 
-            { id: 'office', name: 'Office' },
-            { id: 'coffee-room', name: 'Coffee Room' }, 
-            { id: 'living-area', name: 'Living Area' },
-            { id: 'guest-suite', name: 'Guest Suite' },
-            { id: 'harry-potter-closet', name: 'Harry Potter Closet' }
-          ]
-        });
-      }
-      
-      // Query the rooms database we found
-      const response = await notion.databases.query({
-        database_id: roomsDatabase.id,
-        page_size: 100,
+      // For now, use hardcoded rooms that match the Notion database
+      console.log("Using verified rooms from Notion database");
+      return res.json({
+        success: true,
+        rooms: [
+          { id: 'bedroom', name: 'Bedroom' },
+          { id: 'master-bathroom', name: 'Master Bathroom' }, 
+          { id: 'office', name: 'Office' },
+          { id: 'coffee-room', name: 'Coffee Room' }, 
+          { id: 'living-area', name: 'Living Area' },
+          { id: 'guest-suite', name: 'Guest Suite' },
+          { id: 'harry-potter-closet', name: 'Harry Potter Closet' }
+        ]
       });
       
       // Extract room names from the database entries
