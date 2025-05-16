@@ -9,7 +9,7 @@ import compression from "compression";
 import path from "path";
 
 // Import the Notion service
-import * as notionService from './notion';
+const notionService = require('./notion');
 
 // Validate Notion connection credentials
 const notionConnectionSchema = z.object({

@@ -1,380 +1,184 @@
 import { Client } from "@notionhq/client";
-import { 
-  NotionDatabaseItem, 
-  NotionDatabase
-} from "@shared/schema";
 
-export interface NotionService {
-  validateConnection(integrationToken: string, databaseId: string): Promise<{
-    success: boolean,
-    database?: NotionDatabase,
-    error?: string
-  }>;
-  getDatabaseItems(
-    integrationToken: string, 
-    databaseId: string, 
-    filters?: Record<string, any>, 
-    sort?: { property: string, direction: "ascending" | "descending" },
-    search?: string
-  ): Promise<NotionDatabaseItem[]>;
-  getDatabaseItem(
-    integrationToken: string, 
-    pageId: string
-  ): Promise<NotionDatabaseItem | null>;
+// Initialize Notion client
+const notion = new Client({
+  auth: process.env.NOTION_INTEGRATION_SECRET,
+});
+
+// Extract the page ID from the Notion page URL
+function extractPageIdFromUrl(pageUrl) {
+  const match = pageUrl.match(/([a-f0-9]{32})(?:[?#]|$)/i);
+  if (match && match[1]) {
+    return match[1];
+  }
+  throw Error("Failed to extract page ID");
 }
 
-export class NotionAPIService implements NotionService {
-  /**
-   * Validates the Notion connection by retrieving database metadata
-   */
-  async validateConnection(integrationToken: string, databaseId: string): Promise<{
-    success: boolean,
-    database?: NotionDatabase,
-    error?: string
-  }> {
-    try {
-      const notion = new Client({
-        auth: integrationToken
-      });
+const NOTION_PAGE_ID = extractPageIdFromUrl(process.env.NOTION_PAGE_URL);
 
-      // Try to access the database to validate credentials
-      const database = await notion.databases.retrieve({
-        database_id: databaseId
-      });
-
-      if (!database) {
-        return {
-          success: false,
-          error: "Database not found"
-        };
-      }
-
-      // Extract database title 
-      let title = "Notion Database";
-      if (database.title && database.title.length > 0) {
-        title = database.title.map(text => text.plain_text).join('');
-      }
-
+/**
+ * Get all rooms from the Notion database
+ */
+async function getRooms() {
+  try {
+    console.log(`Fetching rooms from database ID: ${process.env.NOTION_ROOMS_DATABASE_ID}`);
+    
+    // Query the rooms database
+    const response = await notion.databases.query({
+      database_id: process.env.NOTION_ROOMS_DATABASE_ID,
+    });
+    
+    // Transform the response to a simplified format
+    const rooms = response.results.map(page => {
+      // Get the title (name) of the room
+      const nameProperty = Object.values(page.properties).find(
+        prop => prop.type === 'title'
+      );
+      
+      const name = nameProperty?.title?.[0]?.plain_text || 'Unnamed Room';
+      
+      // Get room description if available
+      const descriptionProperty = Object.values(page.properties).find(
+        prop => prop.type === 'rich_text' && prop.rich_text && prop.rich_text.length > 0
+      );
+      
+      const description = descriptionProperty?.rich_text?.[0]?.plain_text || '';
+      
+      // Get item count if available (assuming it's a number property)
+      const itemCountProperty = Object.values(page.properties).find(
+        prop => prop.type === 'number'
+      );
+      
+      const itemCount = itemCountProperty?.number || 0;
+      
       return {
-        success: true,
-        database: {
-          id: database.id,
-          userId: 0, // In a real app, this would be the authenticated user's ID
-          title,
-          lastSynced: new Date(),
-          schema: database.properties
-        }
+        id: page.id,
+        name,
+        description,
+        itemCount,
+        lastUpdated: page.last_edited_time
       };
-    } catch (error) {
-      console.error("Error validating Notion connection:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to connect to Notion database"
-      };
-    }
-  }
-
-  /**
-   * Get all items from the specified Notion database with filtering and sorting
-   */
-  async getDatabaseItems(
-    integrationToken: string, 
-    databaseId: string, 
-    filters: Record<string, any> = {}, 
-    sort?: { property: string, direction: "ascending" | "descending" },
-    search?: string
-  ): Promise<NotionDatabaseItem[]> {
-    try {
-      const notion = new Client({
-        auth: integrationToken
-      });
-
-      // Build query parameters
-      const queryParams: any = {
-        database_id: databaseId,
-        page_size: 100
-      };
-
-      // Add sorting if provided
-      if (sort) {
-        queryParams.sorts = [{
-          property: sort.property,
-          direction: sort.direction
-        }];
-      }
-
-      // Add filters if provided
-      if (Object.keys(filters).length > 0) {
-        const filterConditions = [];
-
-        for (const [key, value] of Object.entries(filters)) {
-          if (value === null) continue;
-
-          // Create filter condition based on property type
-          // This is simplified - in a real app, you'd determine the property type
-          // from the database schema and build the filter accordingly
-          filterConditions.push({
-            property: key,
-            [typeof value === 'string' ? 'rich_text' : 'checkbox']: {
-              equals: value
-            }
-          });
-        }
-
-        if (filterConditions.length > 0) {
-          queryParams.filter = {
-            and: filterConditions
-          };
-        }
-      }
-
-      // Query the database
-      const response = await notion.databases.query(queryParams);
-
-      // Process results
-      const items = await Promise.all(response.results.map(async page => {
-        // Extract properties from the page
-        const properties = page.properties;
-
-        // Extract common fields
-        const title = this.extractTitle(properties);
-        const description = this.extractRichText(this.findProperty(properties, 'Description', 'rich_text'));
-        const status = this.extractSelect(this.findProperty(properties, 'Status', 'select'));
-        const priority = this.extractSelect(this.findProperty(properties, 'Priority', 'select'));
-        const date = this.extractDate(this.findProperty(properties, 'Date', 'date'));
-        const assignedTo = this.extractPerson(this.findProperty(properties, 'Assigned', 'people') || 
-                                              this.findProperty(properties, 'AssignedTo', 'people'));
-        const category = this.extractSelect(this.findProperty(properties, 'Category', 'select'));
-
-        // Check for attachments
-        const attachmentsProperty = this.findProperty(properties, 'Attachments', 'files') ||
-                                    this.findProperty(properties, 'Files', 'files');
-        const attachments = this.extractAttachments(attachmentsProperty);
-
-        const notionId = this.extractId(page.properties);
-        const item: NotionDatabaseItem = {
-          id: notionId || page.id, // Fall back to page.id if no ID property
-          notionPageId: page.id,
-          databaseId,
-          title,
-          description,
-          status,
-          priority,
-          date: date ? new Date(date) : new Date(),
-          assignedTo,
-          category,
-          url: page.url,
-          lastUpdated: new Date(page.last_edited_time),
-          properties: page.properties,
-          attachments
-        };
-
-        return item;
-      }));
-
-      // Apply text search if provided
-      if (search && search.trim() !== '') {
-        const searchTerm = search.toLowerCase().trim();
-        return items.filter(item => 
-          item.title.toLowerCase().includes(searchTerm) || 
-          (item.description && item.description.toLowerCase().includes(searchTerm))
-        );
-      }
-
-      return items;
-    } catch (error) {
-      console.error("Error fetching database items:", error);
-      throw new Error(`Failed to fetch database items: ${error.message}`);
-    }
-  }
-
-  /**
-   * Get a single item from Notion by page ID
-   */
-  async getDatabaseItem(
-    integrationToken: string, 
-    pageId: string
-  ): Promise<NotionDatabaseItem | null> {
-    try {
-      const notion = new Client({
-        auth: integrationToken
-      });
-
-      // Retrieve the page
-      const page = await notion.pages.retrieve({
-        page_id: pageId
-      });
-
-      // Get page content blocks
-      const blocks = await notion.blocks.children.list({
-        block_id: pageId,
-        page_size: 100
-      });
-
-      // Extract properties
-      const properties = page.properties;
-
-      const title = this.extractTitle(properties);
-      const description = this.extractRichText(this.findProperty(properties, 'Description', 'rich_text'));
-      const status = this.extractSelect(this.findProperty(properties, 'Status', 'select'));
-      const priority = this.extractSelect(this.findProperty(properties, 'Priority', 'select'));
-      const date = this.extractDate(this.findProperty(properties, 'Date', 'date'));
-      const assignedTo = this.extractPerson(this.findProperty(properties, 'Assigned', 'people') || 
-                                            this.findProperty(properties, 'AssignedTo', 'people'));
-      const category = this.extractSelect(this.findProperty(properties, 'Category', 'select'));
-
-      // Check for attachments
-      const attachmentsProperty = this.findProperty(properties, 'Attachments', 'files') ||
-                                  this.findProperty(properties, 'Files', 'files');
-      const attachments = this.extractAttachments(attachmentsProperty);
-
-      // Process blocks to get full description
-      let fullDescription = description || '';
-
-      blocks.results.forEach(block => {
-        if (block.type === 'paragraph' && block.paragraph) {
-          const paragraphText = block.paragraph.rich_text
-            ?.map(text => text.plain_text)
-            .join('') || '';
-
-          if (paragraphText) {
-            fullDescription += fullDescription ? '\n\n' + paragraphText : paragraphText;
-          }
-        }
-      });
-
-      const notionId = this.extractId(page.properties);
-      const item: NotionDatabaseItem = {
-        id: notionId || page.id, // Fall back to page.id if no ID property
-        notionPageId: page.id,
-        databaseId: '', // We don't have this directly from the page, would be set from the query context
-        title,
-        description: fullDescription,
-        status,
-        priority,
-        date: date ? new Date(date) : new Date(),
-        assignedTo,
-        category,
-        url: page.url,
-        lastUpdated: new Date(page.last_edited_time),
-        properties: page.properties,
-        attachments
-      };
-
-      return item;
-    } catch (error) {
-      console.error("Error fetching database item:", error);
-      throw new Error(`Failed to fetch database item: ${error.message}`);
-    }
-  }
-
-  /**
-   * Helper method to find a property by name or type
-   */
-  private findProperty(properties: Record<string, any>, name: string, type: string): any {
-    // First try to find by exact name
-    if (properties[name] && properties[name].type === type) {
-      return properties[name];
-    }
-
-    // Try case-insensitive name match
-    const nameLower = name.toLowerCase();
-    for (const [key, value] of Object.entries(properties)) {
-      if (key.toLowerCase() === nameLower && value.type === type) {
-        return value;
-      }
-    }
-
-    // Find first property of this type
-    for (const value of Object.values(properties)) {
-      if (value.type === type) {
-        return value;
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Extract title from properties
-   */
-  private extractTitle(properties: Record<string, any>): string {
-    // Find the title property
-    for (const prop of Object.values(properties)) {
-      if (prop.type === 'title' && prop.title.length > 0) {
-        return prop.title.map(text => text.plain_text).join('');
-      }
-    }
-    return 'Untitled';
-  }
-
-  /**
-   * Extract rich text content
-   */
-  private extractRichText(property: any): string {
-    if (!property || property.type !== 'rich_text' || !property.rich_text) {
-      return '';
-    }
-    return property.rich_text.map(text => text.plain_text).join('');
-  }
-
-  /**
-   * Extract select option value
-   */
-  private extractSelect(property: any): string {
-    if (!property || property.type !== 'select' || !property.select) {
-      return '';
-    }
-    return property.select.name || '';
-  }
-
-  /**
-   * Extract date value
-   */
-  private extractDate(property: any): string | null {
-    if (!property || property.type !== 'date' || !property.date) {
-      return null;
-    }
-    return property.date.start || null;
-  }
-
-  /**
-   * Extract person assigned
-   */
-  private extractPerson(property: any): string {
-    if (!property || property.type !== 'people' || !property.people.length) {
-      return '';
-    }
-    return property.people[0].name || property.people[0].id || '';
-  }
-
-  /**
-   * Extract file attachments
-   */
-  private extractAttachments(property: any): Array<{ name: string, url: string }> {
-    if (!property || property.type !== 'files' || !property.files.length) {
-      return [];
-    }
-
-    return property.files
-      .map(file => ({
-        name: file.name || 'Attachment',
-        url: file.file?.url || file.external?.url || ''
-      }))
-      .filter(file => file.url);
-  }
-
-  /**
-   * Extracts the ID from the Notion properties.  Assumes ID is a text property.
-   */
-  private extractId(properties: Record<string, any>): string | null {
-    const idProperty = properties['ID'];
-    if (idProperty && idProperty.type === 'rich_text' && idProperty.rich_text.length > 0) {
-      return idProperty.rich_text[0].plain_text;
-    }
-    return null;
+    });
+    
+    console.log(`Found ${rooms.length} rooms in Notion database`);
+    return rooms;
+    
+  } catch (error) {
+    console.error('Error fetching rooms from Notion:', error);
+    throw error;
   }
 }
 
-// Create and export a singleton instance
-export const notionService = new NotionAPIService();
+/**
+ * Get items from a specific room using the room's Notion page ID
+ */
+async function getItemsByRoom(roomId) {
+  try {
+    console.log(`Fetching items for room: ${roomId}`);
+    
+    // Query the items database with filter for the specified room
+    // Here we assume there's a relation property linking items to rooms
+    const response = await notion.databases.query({
+      database_id: process.env.NOTION_ITEMS_DATABASE_ID || "",
+      filter: {
+        property: "Room",
+        relation: {
+          contains: roomId
+        }
+      }
+    });
+    
+    // Transform the response to a simplified format
+    const items = response.results.map(page => {
+      // Get the name of the item
+      const nameProperty = Object.values(page.properties).find(
+        prop => prop.type === 'title'
+      );
+      
+      const name = nameProperty?.title?.[0]?.plain_text || 'Unnamed Item';
+      
+      // Get item description
+      const descriptionProperty = Object.values(page.properties).find(
+        prop => prop.type === 'rich_text' && prop.rich_text && prop.rich_text.length > 0
+      );
+      
+      const description = descriptionProperty?.rich_text?.[0]?.plain_text || '';
+      
+      // Get item image if available
+      const imageProperty = Object.values(page.properties).find(
+        prop => prop.type === 'files' && prop.files && prop.files.length > 0
+      );
+      
+      const image = imageProperty?.files?.[0]?.external?.url || null;
+      
+      return {
+        id: page.id,
+        name,
+        description,
+        image,
+        lastUpdated: page.last_edited_time
+      };
+    });
+    
+    console.log(`Found ${items.length} items in room ${roomId}`);
+    return items;
+    
+  } catch (error) {
+    console.error(`Error fetching items for room ${roomId}:`, error);
+    
+    // If the items database ID isn't configured, generate fallback items
+    if (!process.env.NOTION_ITEMS_DATABASE_ID) {
+      console.log('No items database configured, using sample items');
+      return generateSampleItemsForRoom(roomId);
+    }
+    
+    throw error;
+  }
+}
+
+// Helper function to generate sample items for each room (as fallback)
+function generateSampleItemsForRoom(roomId) {
+  const sampleItems = {
+    'bedroom': [
+      { id: 'bed-1', name: 'Queen Size Bed', description: 'Main sleeping area', image: '/assets/bed.jpg' },
+      { id: 'dresser-1', name: 'Wooden Dresser', description: 'For clothing storage', image: '/assets/dresser.jpg' },
+      { id: 'nightstand-1', name: 'Nightstand', description: 'Bedside table with lamp', image: '/assets/nightstand.jpg' }
+    ],
+    'master-bathroom': [
+      { id: 'shower-1', name: 'Glass Shower', description: 'Walk-in shower', image: '/assets/shower.jpg' },
+      { id: 'sink-1', name: 'Double Sink', description: 'His and hers sinks', image: '/assets/sink.jpg' },
+      { id: 'toilet-1', name: 'Toilet', description: 'Standard toilet', image: '/assets/toilet.jpg' }
+    ],
+    'office': [
+      { id: 'desk-1', name: 'Standing Desk', description: 'Adjustable height desk', image: '/assets/desk.jpg' },
+      { id: 'chair-1', name: 'Office Chair', description: 'Ergonomic chair', image: '/assets/chair.jpg' },
+      { id: 'bookshelf-1', name: 'Bookshelf', description: 'For books and decor', image: '/assets/bookshelf.jpg' }
+    ],
+    'harry-potter-closet': [
+      { id: 'wand-1', name: 'Magic Wand', description: 'Made of holly with phoenix feather core', image: '/assets/wand.jpg' },
+      { id: 'invisibility-cloak-1', name: 'Invisibility Cloak', description: 'Makes the wearer invisible', image: '/assets/cloak.jpg' },
+      { id: 'marauders-map-1', name: "Marauder's Map", description: 'Shows every part of Hogwarts', image: '/assets/map.jpg' },
+      { id: 'broomstick-1', name: 'Nimbus 2000', description: 'Racing broomstick', image: '/assets/broomstick.jpg' }
+    ]
+  };
+  
+  // If we have a specific room ID that matches a Notion ID format (not our sample IDs),
+  // return a generic set of items
+  if (!sampleItems[roomId] && roomId.length > 8) {
+    return [
+      { id: 'item-1', name: 'Large Cabinet', description: 'Storage cabinet for various items', image: null },
+      { id: 'item-2', name: 'Wall Shelf', description: 'Mounted shelf for display items', image: null },
+      { id: 'item-3', name: 'Decorative Plant', description: 'Artificial plant for decoration', image: null }
+    ];
+  }
+  
+  // Return items for the requested room, or empty array if room not found
+  return sampleItems[roomId] || [];
+}
+
+export {
+  notion,
+  NOTION_PAGE_ID,
+  getRooms,
+  getItemsByRoom
+};
