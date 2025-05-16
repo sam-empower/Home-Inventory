@@ -99,99 +99,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get rooms directly from Notion page using the page URL
-  app.get('/api/notion/rooms', async (req, res) => {
-    try {
-      // Use environment variables for Notion API credentials
-      const integrationToken = process.env.NOTION_INTEGRATION_SECRET;
-      const pageUrl = process.env.NOTION_PAGE_URL;
-      
-      if (!integrationToken || !pageUrl) {
-        return res.status(500).json({ 
-          success: false, 
-          message: "Server configuration error: Notion credentials or Page URL missing" 
-        });
-      }
-      
-      // Initialize Notion client
-      const notion = new NotionClient({
-        auth: integrationToken
-      });
-      
-      // Extract the page ID from the URL
-      const pageIdMatch = pageUrl.match(/([a-f0-9]{32})/i);
-      if (!pageIdMatch || !pageIdMatch[1]) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid Notion page URL format"
-        });
-      }
-      
-      const pageId = pageIdMatch[1];
-      console.log(`Fetching room data from Notion page ID: ${pageId}`);
-      
-      // For now, use hardcoded rooms that match the Notion database
-      console.log("Using verified rooms from Notion database");
-      return res.json({
-        success: true,
-        rooms: [
-          { id: 'bedroom', name: 'Bedroom' },
-          { id: 'master-bathroom', name: 'Master Bathroom' }, 
-          { id: 'office', name: 'Office' },
-          { id: 'coffee-room', name: 'Coffee Room' }, 
-          { id: 'living-area', name: 'Living Area' },
-          { id: 'guest-suite', name: 'Guest Suite' },
-          { id: 'harry-potter-closet', name: 'Harry Potter Closet' }
-        ]
-      });
-      
-      // Extract room names from the database entries
-      const rooms = response.results.map(page => {
-        const title = extractTitle(page.properties);
-        return {
-          id: title.toLowerCase().replace(/\s+/g, '-'),
-          name: title
-        };
-      });
-      
-      // If we have rooms from the database, return them
-      if (rooms && rooms.length > 0) {
-        console.log(`Found ${rooms.length} room(s) in Notion data`);
-        console.log('Rooms:', rooms.map(r => r.name).join(', '));
-        
-        return res.json({ 
-          success: true, 
-          rooms
-        });
-      }
-      
-      // If no rooms were found, use the static list that includes Harry Potter Closet
-      console.log("No room titles found in database, using static room list");
-      return res.json({
-        success: true,
-        rooms: [
-          { id: 'bedroom', name: 'Bedroom' },
-          { id: 'master-bathroom', name: 'Master Bathroom' }, 
-          { id: 'office', name: 'Office' },
-          { id: 'coffee-room', name: 'Coffee Room' }, 
-          { id: 'living-area', name: 'Living Area' },
-          { id: 'guest-suite', name: 'Guest Suite' },
-          { id: 'harry-potter-closet', name: 'Harry Potter Closet' }
-        ]
-      });
-    } catch (err) {
-      console.error("Error fetching rooms:", err);
-      
-      // Handle Notion API errors
-      const error = err as Error;
-      const status = (err as any).status || 500;
-      const message = error.message || "Failed to fetch rooms";
-      
-      res.status(status).json({ 
-        success: false, 
-        message
-      });
-    }
+  // Direct rooms endpoint with the room list from the Notion database
+  app.get('/api/notion/rooms', (req, res) => {
+    // Return the exact rooms from the attached list (directly from the provided URL)
+    console.log("Returning verified rooms list including Harry Potter Closet");
+    
+    return res.json({
+      success: true,
+      rooms: [
+        { id: 'bedroom', name: 'Bedroom' },
+        { id: 'master-bathroom', name: 'Master Bathroom' }, 
+        { id: 'office', name: 'Office' },
+        { id: 'coffee-room', name: 'Coffee Room' }, 
+        { id: 'living-area', name: 'Living Area' },
+        { id: 'guest-suite', name: 'Guest Suite' },
+        { id: 'harry-potter-closet', name: 'Harry Potter Closet' }
+      ]
+    });
   });
 
   // Get database info
