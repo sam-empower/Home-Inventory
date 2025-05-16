@@ -278,10 +278,18 @@ async function getItemsByRoom(roomId) {
         try {
           const imageProperty = page.properties.Image;
           if (imageProperty && imageProperty.type === 'files' && imageProperty.files.length > 0) {
-            image = imageProperty.files[0].external?.url || null;
+            // Check for both external and file URLs (Notion can have either)
+            const file = imageProperty.files[0];
+            if (file.type === 'external') {
+              image = file.external.url;
+              console.log(`Found external image URL: ${image}`);
+            } else if (file.type === 'file') {
+              image = file.file.url;
+              console.log(`Found Notion-hosted image URL: ${image}`);
+            }
           }
         } catch (err) {
-          console.log(`No image for ${name}`);
+          console.log(`No image for ${name}: ${err.message}`);
         }
         
         return {
