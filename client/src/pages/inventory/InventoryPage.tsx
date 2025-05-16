@@ -34,6 +34,12 @@ export default function InventoryPage() {
     refetch: refetchRooms
   } = useNotionRooms();
 
+  // Force refresh rooms data when component mounts
+  useEffect(() => {
+    console.log('Refreshing rooms data...');
+    refetchRooms();
+  }, [refetchRooms]);
+
   // Log rooms data for debugging
   useEffect(() => {
     if (rooms && rooms.length > 0) {
