@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useNotion } from "@/context/NotionContext";
 import { AppHeader } from "@/components/AppHeader";
 import { SettingsPanel } from "@/components/SettingsPanel";
@@ -10,6 +11,7 @@ import { Icons } from "@/lib/icons";
 
 export default function InventoryPage() {
   const { isConnected, isLoading: isConnectionLoading, refresh: refreshConnection } = useNotion();
+  const [, setLocation] = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");

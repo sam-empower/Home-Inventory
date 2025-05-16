@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/HomePage";
 import DiagnosticsPage from "@/pages/DiagnosticsPage";
 import InventoryPage from "@/pages/inventory/InventoryPage";
+import RoomItemsPage from "@/pages/inventory/RoomItemsPage";
 import TasksPage from "@/pages/tasks/TasksPage";
 import ExpensesPage from "@/pages/expenses/ExpensesPage";
 import { useState, useEffect } from "react";
@@ -42,6 +43,7 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/inventory" component={InventoryPage} />
+        <Route path="/inventory/:roomId" component={RoomItemsPage} />
         <Route path="/tasks" component={TasksPage} />
         <Route path="/expenses" component={ExpensesPage} />
         <Route path="/diagnostics" component={DiagnosticsPage} />
