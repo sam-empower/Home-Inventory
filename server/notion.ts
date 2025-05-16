@@ -76,16 +76,7 @@ async function getItemsByRoom(roomId) {
   try {
     console.log(`Fetching items for room: ${roomId} using database ID: ${process.env.NOTION_ITEMS_DATABASE_ID}`);
     
-    // If this is one of our predefined roomIds, use our sample data
-    if (roomId === 'bedroom' || roomId === 'master-bathroom' || 
-        roomId === 'office' || roomId === 'coffee-room' || 
-        roomId === 'living-area' || roomId === 'guest-suite' || 
-        roomId === 'harry-potter-closet') {
-      console.log(`Using sample data for predefined room: ${roomId}`);
-      return generateSampleItemsForRoom(roomId);
-    }
-    
-    // For actual Notion database IDs, query the database
+    // Always try to fetch from Notion first
     const response = await notion.databases.query({
       database_id: process.env.NOTION_ITEMS_DATABASE_ID || "",
       filter: {
@@ -134,10 +125,10 @@ async function getItemsByRoom(roomId) {
   } catch (error) {
     console.error(`Error fetching items for room ${roomId}:`, error);
     
-    // If the items database ID isn't configured, generate fallback items
+    // Only use fallback if critical error (no database ID configured)
     if (!process.env.NOTION_ITEMS_DATABASE_ID) {
-      console.log('No items database configured, using sample items');
-      return generateSampleItemsForRoom(roomId);
+      console.log('No items database configured, cannot fetch items');
+      throw new Error('Notion Items database ID is not configured');
     }
     
     throw error;
