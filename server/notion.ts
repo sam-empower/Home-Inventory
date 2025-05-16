@@ -76,16 +76,72 @@ async function getItemsByRoom(roomId) {
   try {
     console.log(`Fetching items for room: ${roomId} using database ID: ${process.env.NOTION_ITEMS_DATABASE_ID}`);
     
-    // Always try to fetch from Notion first
-    const response = await notion.databases.query({
-      database_id: process.env.NOTION_ITEMS_DATABASE_ID || "",
-      filter: {
-        property: "Room",
-        relation: {
-          contains: roomId
+    // Check if this is a predefined room ID or a Notion UUID
+    const isPredefinedId = ['bedroom', 'master-bathroom', 'office', 'coffee-room', 
+                          'living-area', 'guest-suite', 'harry-potter-closet'].includes(roomId);
+    
+    let response;
+    
+    if (isPredefinedId) {
+      console.log(`Using predefined room ID: ${roomId}, will fetch actual items from Notion database`);
+      
+      // For predefined rooms, we need to query all items and filter them by room name
+      response = await notion.databases.query({
+        database_id: process.env.NOTION_ITEMS_DATABASE_ID || ""
+      });
+      
+      // Filter items by room name matching our predefined ID
+      const roomName = {
+        'bedroom': 'Bedroom',
+        'master-bathroom': 'Master Bathroom',
+        'office': 'Office',
+        'coffee-room': 'Coffee Room',
+        'living-area': 'Living Area',
+        'guest-suite': 'Guest Suite',
+        'harry-potter-closet': 'Harry Potter Closet'
+      }[roomId];
+      
+      console.log(`Filtering items for room name: ${roomName}`);
+      
+      // Process all items and filter by room name
+      const filteredResults = response.results.filter(page => {
+        // Look for different ways that room might be specified
+        
+        // 1. Room as a select field
+        const roomSelectProperty = Object.values(page.properties).find(
+          prop => prop.type === 'select' && 
+                  prop.select && 
+                  prop.select.name === roomName
+        );
+        
+        // 2. Room as a text/title field that contains the room name
+        const titleWithRoomProperty = Object.values(page.properties).find(
+          prop => (prop.type === 'rich_text' || prop.type === 'title') && 
+                  ((prop.rich_text?.[0]?.plain_text || '').includes(roomName) ||
+                   (prop.title?.[0]?.plain_text || '').includes(roomName))
+        );
+        
+        // Include this item if it matches any of our room criteria
+        return roomSelectProperty !== undefined || titleWithRoomProperty !== undefined;
+      });
+      
+      console.log(`Found ${filteredResults.length} items matching room name ${roomName}`);
+      
+      // Replace the response results with our filtered results
+      response.results = filteredResults;
+      
+    } else {
+      // For actual Notion UUIDs, query with relation filter
+      response = await notion.databases.query({
+        database_id: process.env.NOTION_ITEMS_DATABASE_ID || "",
+        filter: {
+          property: "Room",
+          relation: {
+            contains: roomId
+          }
         }
-      }
-    });
+      });
+    }
     
     // Transform the response to a simplified format
     const items = response.results.map(page => {
