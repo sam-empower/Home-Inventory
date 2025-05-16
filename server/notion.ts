@@ -76,11 +76,12 @@ async function getItemsByRoom(roomId) {
   try {
     console.log(`Fetching items for room: ${roomId} using database ID: ${process.env.NOTION_ITEMS_DATABASE_ID}`);
     
-    // Get the room name for filtering - try both the predefined IDs and actual Notion IDs
+    // Get the room name for filtering
     let roomNameForFiltering = "";
+    let realRoomId = roomId;
     
-    // Map predefined IDs to room names
-    const predefinedRoomNames = {
+    // Handle predefined IDs vs actual Notion IDs
+    const predefinedIds = {
       'bedroom': 'Bedroom',
       'master-bathroom': 'Master Bathroom',
       'office': 'Office',
@@ -90,80 +91,108 @@ async function getItemsByRoom(roomId) {
       'harry-potter-closet': 'Harry Potter Closet'
     };
     
-    if (predefinedRoomNames[roomId]) {
-      roomNameForFiltering = predefinedRoomNames[roomId];
-    } else {
-      // For a Notion UUID, get the actual room name from the rooms database
+    // If it's a predefined ID, we need to find the matching Notion page ID
+    if (predefinedIds[roomId]) {
+      roomNameForFiltering = predefinedIds[roomId];
+      console.log(`Searching for Notion page with name: ${roomNameForFiltering}`);
+      
+      // Find the actual Notion page ID for this room
       try {
-        const roomResponse = await notion.pages.retrieve({ page_id: roomId });
-        // Extract the room name from the response (depends on your database structure)
-        if (roomResponse && roomResponse.properties) {
-          const titleProp = Object.values(roomResponse.properties).find(
+        const roomsResponse = await notion.databases.query({
+          database_id: process.env.NOTION_ROOMS_DATABASE_ID || ""
+        });
+        
+        // Find the room page that matches our name
+        const matchingRoom = roomsResponse.results.find(room => {
+          const nameProperty = Object.values(room.properties).find(
             prop => prop.type === 'title'
           );
-          if (titleProp && titleProp.title && titleProp.title.length > 0) {
-            roomNameForFiltering = titleProp.title[0].plain_text;
-          }
+          
+          const roomName = nameProperty?.title?.[0]?.plain_text || '';
+          return roomName === roomNameForFiltering;
+        });
+        
+        if (matchingRoom) {
+          realRoomId = matchingRoom.id;
+          console.log(`Found matching Notion room with ID: ${realRoomId}`);
+        } else {
+          console.log(`Could not find matching Notion room for: ${roomNameForFiltering}`);
         }
-      } catch (roomError) {
-        console.log(`Could not retrieve room details: ${roomError.message}`);
+      } catch (error) {
+        console.error(`Error finding room ID: ${error.message}`);
+      }
+    } else {
+      // It's already a Notion UUID, get its name
+      try {
+        const roomResponse = await notion.pages.retrieve({ page_id: roomId });
+        
+        const titleProp = Object.values(roomResponse.properties).find(
+          prop => prop.type === 'title'
+        );
+        
+        if (titleProp && titleProp.title && titleProp.title.length > 0) {
+          roomNameForFiltering = titleProp.title[0].plain_text;
+          console.log(`Found room name: ${roomNameForFiltering} for ID: ${roomId}`);
+        }
+      } catch (error) {
+        console.error(`Error retrieving room details: ${error.message}`);
       }
     }
     
-    console.log(`Searching for items related to room: ${roomNameForFiltering}`);
-    
-    // Query the items database without filtering - we'll filter client-side
-    let response = await notion.databases.query({
+    // Based on your database structure, we need to:
+    // 1. Query all items
+    // 2. Find items that have Room rollup property matching our room name
+    const itemsResponse = await notion.databases.query({
       database_id: process.env.NOTION_ITEMS_DATABASE_ID || ""
     });
     
-    if (!roomNameForFiltering) {
-      console.log(`No room name available for filtering, returning all items`);
-    } else {
-      console.log(`Filtering items for room name: ${roomNameForFiltering}`);
-      
-      // Filter results to match the room name - this depends on your database structure
-      // We need to handle various ways the room might be referenced
-      const originalResults = [...response.results];
-      const filteredResults = originalResults.filter(page => {
-        // Look for properties that might reference the room
-        const matchingProperty = Object.entries(page.properties).find(([propName, propValue]) => {
-          // Check different types of properties that might reference a room
-          
-          // Check title/text properties that contain the room name
-          if (propValue.type === 'title' || propValue.type === 'rich_text') {
-            const textContent = propValue.type === 'title' 
-              ? propValue.title?.map(t => t.plain_text).join('') 
-              : propValue.rich_text?.map(t => t.plain_text).join('');
-            return textContent && textContent.includes(roomNameForFiltering);
-          }
-          
-          // Check select properties
-          if (propValue.type === 'select' && propValue.select) {
-            return propValue.select.name === roomNameForFiltering;
-          }
-          
-          // Look for relation properties that might link to the room
-          if (propValue.type === 'relation' && propValue.relation) {
-            return propValue.relation.some(rel => rel.id === roomId);
-          }
-          
-          // Check for the property name itself containing "room" and matching
-          return propName.toLowerCase().includes('room') && 
-                 String(propValue[propValue.type]?.name || '').includes(roomNameForFiltering);
-        });
+    console.log(`Retrieved ${itemsResponse.results.length} total items from database`);
+    
+    // Filter items based on your database structure
+    const filteredItems = itemsResponse.results.filter(item => {
+      try {
+        // Look at the rollup "Room" property which gets values from boxes
+        const roomProperty = item.properties.Room;
         
-        return !!matchingProperty;
-      });
-      
-      console.log(`Found ${filteredResults.length} items matching room name ${roomNameForFiltering} out of ${originalResults.length} total items`);
-      
-      // Replace the results with our filtered results
-      response.results = filteredResults;
-    }
+        if (roomProperty && roomProperty.type === 'rollup') {
+          const rollupContent = roomProperty.rollup;
+          
+          // Check if any of the rollup values match our room name
+          if (rollupContent.array && rollupContent.array.length > 0) {
+            // Examine each value in the rollup array
+            return rollupContent.array.some(value => {
+              if (value.type === 'title') {
+                // Title content match
+                return value.title?.some(titlePart => 
+                  titlePart.plain_text === roomNameForFiltering
+                );
+              }
+              return false;
+            });
+          }
+        }
+        
+        // Also check the Box relation directly, in case it references our room
+        const boxProperty = item.properties.Box;
+        if (boxProperty && boxProperty.type === 'relation' && boxProperty.relation) {
+          // We'd need to check each box and see if it's related to our room
+          // This requires additional queries, so for now we'll focus on the rollup
+        }
+        
+        return false;
+      } catch (error) {
+        console.error(`Error checking item properties: ${error.message}`);
+        return false;
+      }
+    });
+    
+    console.log(`Filtered to ${filteredItems.length} items for room: ${roomNameForFiltering}`);
+    
+    // Replace the results with our filtered items
+    itemsResponse.results = filteredItems;
     
     // Transform the response to a simplified format
-    const items = response.results.map(page => {
+    const items = itemsResponse.results.map(page => {
       // Get the name of the item
       const nameProperty = Object.values(page.properties).find(
         prop => prop.type === 'title'
