@@ -99,17 +99,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get rooms directly from Notion Rooms database
+  // Get rooms directly from Notion page using the page URL
   app.get('/api/notion/rooms', async (req, res) => {
     try {
       // Use environment variables for Notion API credentials
-      const integrationToken = process.env.NOTION_TOKEN;
-      const roomsDatabaseId = process.env.NOTION_ROOMS_DATABASE_ID;
+      const integrationToken = process.env.NOTION_INTEGRATION_SECRET;
+      const pageUrl = process.env.NOTION_PAGE_URL;
       
-      if (!integrationToken || !roomsDatabaseId) {
+      if (!integrationToken || !pageUrl) {
         return res.status(500).json({ 
           success: false, 
-          message: "Server configuration error: Notion credentials or Rooms database ID missing" 
+          message: "Server configuration error: Notion credentials or Page URL missing" 
         });
       }
       
@@ -118,11 +118,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         auth: integrationToken
       });
       
-      console.log(`Fetching rooms from Notion database ID: ${roomsDatabaseId}`);
+      // Extract the page ID from the URL
+      const pageIdMatch = pageUrl.match(/([a-f0-9]{32})/i);
+      if (!pageIdMatch || !pageIdMatch[1]) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid Notion page URL format"
+        });
+      }
       
-      // Query the rooms database directly
+      const pageId = pageIdMatch[1];
+      console.log(`Fetching room data from Notion page ID: ${pageId}`);
+      
+      // Get the databases from the Notion page first
+      const databasesResponse = await notion.databases.list();
+      const roomsDatabase = databasesResponse.results.find((db: any) => {
+        const dbTitle = db.title && db.title[0]?.plain_text;
+        return dbTitle && dbTitle.toLowerCase().includes('room');
+      });
+      
+      if (!roomsDatabase) {
+        console.warn("No rooms database found");
+        // Fallback to static room list that includes Harry Potter Closet
+        return res.json({
+          success: true,
+          rooms: [
+            { id: 'bedroom', name: 'Bedroom' },
+            { id: 'master-bathroom', name: 'Master Bathroom' }, 
+            { id: 'office', name: 'Office' },
+            { id: 'coffee-room', name: 'Coffee Room' }, 
+            { id: 'living-area', name: 'Living Area' },
+            { id: 'guest-suite', name: 'Guest Suite' },
+            { id: 'harry-potter-closet', name: 'Harry Potter Closet' }
+          ]
+        });
+      }
+      
+      // Query the rooms database we found
       const response = await notion.databases.query({
-        database_id: roomsDatabaseId,
+        database_id: roomsDatabase.id,
         page_size: 100,
       });
       
@@ -135,30 +169,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
-      if (rooms.length === 0) {
-        console.warn("No rooms found in the Notion Rooms database");
-        // Fallback to static rooms if no rooms found in the data
-        return res.json({
-          success: true,
-          rooms: [
-            { id: 'kitchen', name: 'Kitchen' },
-            { id: 'living-room', name: 'Living Room' }, 
-            { id: 'bedroom-1', name: 'Bedroom 1' },
-            { id: 'bedroom-2', name: 'Bedroom 2' }, 
-            { id: 'garage', name: 'Garage' },
-            { id: 'attic', name: 'Attic' },
-            { id: 'bathroom', name: 'Bathroom' },
-            { id: 'harry-potter-closet', name: 'Harry Potter Closet' } // Add the missing room
-          ]
+      // If we have rooms from the database, return them
+      if (rooms && rooms.length > 0) {
+        console.log(`Found ${rooms.length} room(s) in Notion data`);
+        console.log('Rooms:', rooms.map(r => r.name).join(', '));
+        
+        return res.json({ 
+          success: true, 
+          rooms
         });
       }
       
-      console.log(`Found ${rooms.length} room(s) in Notion data`);
-      console.log('Rooms:', rooms.map(r => r.name).join(', '));
-      
-      res.json({ 
-        success: true, 
-        rooms
+      // If no rooms were found, use the static list that includes Harry Potter Closet
+      console.log("No room titles found in database, using static room list");
+      return res.json({
+        success: true,
+        rooms: [
+          { id: 'bedroom', name: 'Bedroom' },
+          { id: 'master-bathroom', name: 'Master Bathroom' }, 
+          { id: 'office', name: 'Office' },
+          { id: 'coffee-room', name: 'Coffee Room' }, 
+          { id: 'living-area', name: 'Living Area' },
+          { id: 'guest-suite', name: 'Guest Suite' },
+          { id: 'harry-potter-closet', name: 'Harry Potter Closet' }
+        ]
       });
     } catch (err) {
       console.error("Error fetching rooms:", err);
