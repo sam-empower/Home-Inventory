@@ -86,18 +86,30 @@ async function getItemsByRoom(roomId) {
     // Filter and transform items based on the room ID
     let filteredItems = [];
     
-    // Special case for Harry Potter Closet - look for "Harry" in the name
+    // Special case for Harry Potter Closet - look for "Harry" in the name or any other property
     if (roomId === 'harry-potter-closet') {
-      console.log(`Special case for Harry Potter Closet - searching for "Harry" in item names`);
+      console.log(`Special case for Harry Potter Closet - searching for "Harry" in any property`);
       
       filteredItems = response.results.filter(page => {
         try {
-          // Check if the Name property contains "Harry"
-          const nameProperty = page.properties.Name;
-          if (nameProperty && nameProperty.type === 'title' && nameProperty.title.length > 0) {
-            const title = nameProperty.title[0].plain_text;
-            return title.toLowerCase().includes('harry');
+          // Search through all properties for "Harry"
+          for (const [key, value] of Object.entries(page.properties)) {
+            // Check text properties for "Harry"
+            if (value.type === 'title' && value.title && value.title.length > 0) {
+              const text = value.title[0].plain_text;
+              if (text.toLowerCase().includes('harry')) {
+                return true;
+              }
+            }
+            
+            if (value.type === 'rich_text' && value.rich_text && value.rich_text.length > 0) {
+              const text = value.rich_text[0].plain_text;
+              if (text.toLowerCase().includes('harry')) {
+                return true;
+              }
+            }
           }
+          
           return false;
         } catch (error) {
           console.error('Error filtering item:', error);
@@ -105,17 +117,30 @@ async function getItemsByRoom(roomId) {
         }
       });
     } 
-    // Special case for Bedroom - look for "bed" in the name
+    // Special case for Bedroom - look for "bed" in the name or any other property
     else if (roomId === 'bedroom') {
-      console.log(`Special case for Bedroom - searching for bed related items`);
+      console.log(`Special case for Bedroom - searching for bed related items in any property`);
       
       filteredItems = response.results.filter(page => {
         try {
-          const nameProperty = page.properties.Name;
-          if (nameProperty && nameProperty.type === 'title' && nameProperty.title.length > 0) {
-            const title = nameProperty.title[0].plain_text;
-            return title.toLowerCase().includes('bed');
+          // Search through all properties for "bed"
+          for (const [key, value] of Object.entries(page.properties)) {
+            // Check text properties for "bed"
+            if (value.type === 'title' && value.title && value.title.length > 0) {
+              const text = value.title[0].plain_text;
+              if (text.toLowerCase().includes('bed')) {
+                return true;
+              }
+            }
+            
+            if (value.type === 'rich_text' && value.rich_text && value.rich_text.length > 0) {
+              const text = value.rich_text[0].plain_text;
+              if (text.toLowerCase().includes('bed')) {
+                return true;
+              }
+            }
           }
+          
           return false;
         } catch (error) {
           console.error('Error filtering item:', error);
@@ -123,10 +148,68 @@ async function getItemsByRoom(roomId) {
         }
       });
     }
-    // For other rooms, show a sample of items
+    // For other rooms, try to find any relevant items by room name
     else {
-      console.log(`Showing sample items for any room: ${roomId}`);
-      filteredItems = response.results.slice(0, 5);
+      console.log(`Searching all items for room: ${roomId}`);
+      
+      // Try to find the actual room name if this is a Notion UUID
+      let actualRoomName = "";
+      if (roomId.length > 30) {
+        try {
+          // Try to get the room name from Notion
+          const roomPage = await notion.pages.retrieve({ page_id: roomId });
+          const titleProp = Object.values(roomPage.properties).find(
+            prop => prop.type === 'title'
+          );
+          
+          if (titleProp && titleProp.title && titleProp.title.length > 0) {
+            actualRoomName = titleProp.title[0].plain_text;
+            console.log(`Found room name from Notion: ${actualRoomName}`);
+          }
+        } catch (error) {
+          console.error(`Error getting room name: ${error.message}`);
+        }
+      }
+      
+      // If we have an actual room name, filter by it
+      if (actualRoomName) {
+        filteredItems = response.results.filter(page => {
+          try {
+            const nameProperty = page.properties.Name;
+            if (nameProperty && nameProperty.type === 'title' && nameProperty.title.length > 0) {
+              // Check if the title contains the room name
+              const title = nameProperty.title[0].plain_text;
+              if (title.toLowerCase().includes(actualRoomName.toLowerCase())) {
+                return true;
+              }
+            }
+            
+            // Also check any other properties for matches
+            for (const [key, value] of Object.entries(page.properties)) {
+              // Check text properties for room name
+              if ((value.type === 'rich_text' || value.type === 'title') && 
+                  (key.toLowerCase().includes('room') || key.toLowerCase().includes('location'))) {
+                
+                const textContent = value.type === 'rich_text' 
+                  ? value.rich_text?.map(t => t.plain_text).join(' ') 
+                  : value.title?.map(t => t.plain_text).join(' ');
+                
+                if (textContent && textContent.toLowerCase().includes(actualRoomName.toLowerCase())) {
+                  return true;
+                }
+              }
+            }
+            
+            return false;
+          } catch (error) {
+            console.error('Error filtering item by room name:', error);
+            return false;
+          }
+        });
+      } else {
+        // If we don't have a room name, return all items (no slicing/limiting)
+        filteredItems = response.results;
+      }
     }
     
     console.log(`Filtered down to ${filteredItems.length} items for room: ${roomId}`);
