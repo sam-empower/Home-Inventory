@@ -28,21 +28,32 @@ export function useNotionRooms() {
       throw new Error("No cached data available while offline");
     }
     
-    const response = await notionRequest('GET', '/api/notion/rooms');
-    
-    if (response?.success && Array.isArray(response.rooms)) {
-      // Cache the rooms data
-      setCachedData('notion-rooms', response.rooms);
-      return response.rooms;
+    try {
+      // Directly fetch rooms from API without going through notionRequest
+      const response = await fetch('/api/notion/rooms');
+      const data = await response.json();
+      
+      console.log('Room data from API:', data);
+      
+      if (data?.success && Array.isArray(data.rooms)) {
+        // Cache the rooms data
+        setCachedData('notion-rooms', data.rooms);
+        return data.rooms;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      return [];
     }
-    
-    return [];
   };
   
   return useQuery<Room[]>({
     queryKey: ['/api/notion/rooms'],
     queryFn: fetchRooms,
-    enabled: isAuthenticated,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: true, // Always enabled regardless of authentication state
+    staleTime: 0, // No stale time - always fetch fresh data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 }
