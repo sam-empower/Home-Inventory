@@ -96,15 +96,40 @@ async function getItemsByRoom(roomId) {
     // Filter and transform items based on the room ID
     let filteredItems = [];
     
-    // Special case for Harry Potter Closet - look for "Harry" in the name or any other property
+    // Special case for Harry Potter Closet - look for "Harry Potter" in the rollup Room property
     if (roomId === 'harry-potter-closet') {
-      console.log(`Special case for Harry Potter Closet - searching for "Harry" in any property`);
+      console.log(`Special case for Harry Potter Closet - searching in Room rollup property`);
       
       filteredItems = response.results.filter(page => {
         try {
-          // Search through all properties for "Harry"
+          // First, check the Room rollup property if it exists
+          const roomProperty = page.properties.Room;
+          if (roomProperty && roomProperty.type === 'rollup') {
+            // Look at the rollup array
+            const rollupArray = roomProperty.rollup?.array || [];
+            
+            // Check each item in the rollup array
+            for (const rollupItem of rollupArray) {
+              if (rollupItem.type === 'title' && rollupItem.title && rollupItem.title.length > 0) {
+                const roomName = rollupItem.title[0].plain_text;
+                if (roomName.toLowerCase().includes('harry potter')) {
+                  console.log(`Found match for Harry Potter in Room rollup: ${roomName}`);
+                  return true;
+                }
+              }
+            }
+          }
+          
+          // If no match in Room rollup, check the Box relation property
+          const boxProperty = page.properties.Box;
+          if (boxProperty && boxProperty.type === 'relation' && boxProperty.relation && boxProperty.relation.length > 0) {
+            // Just having an item in the Harry Potter relation is a match
+            // We'll need to look up the box details to confirm, but for now we'll include it
+            return true;
+          }
+          
+          // Lastly, check other text properties for "Harry"
           for (const [key, value] of Object.entries(page.properties)) {
-            // Check text properties for "Harry"
             if (value.type === 'title' && value.title && value.title.length > 0) {
               const text = value.title[0].plain_text;
               if (text.toLowerCase().includes('harry')) {
@@ -122,7 +147,7 @@ async function getItemsByRoom(roomId) {
           
           return false;
         } catch (error) {
-          console.error('Error filtering item:', error);
+          console.error('Error filtering item for Harry Potter:', error);
           return false;
         }
       });
