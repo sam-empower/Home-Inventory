@@ -136,25 +136,33 @@ export default function InventoryPage() {
             { id: 'living-area', name: 'Living Area' },
             { id: 'guest-suite', name: 'Guest Suite' },
             { id: 'harry-potter-closet', name: 'Harry Potter Closet' }
-          ].map(room => (
-            <Card key={room.id} className="cursor-pointer hover:shadow-md transition-shadow">
-              <div className="h-24 bg-gray-200 dark:bg-gray-800 relative">
-                {/* Room image would go here */}
-                <div className="absolute bottom-0 right-0 bg-primary p-2 text-white text-xs font-medium">
-                  {/* Use room property that exists or default to 0 */}
-                  0 items
+          ].map(room => {
+            // Get a random number of items for each room (1-10)
+            const randomItemCount = Math.floor(Math.random() * 10) + 1;
+            
+            return (
+              <Card 
+                key={room.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setLocation(`/inventory/${room.id}`)}
+              >
+                <div className="h-24 bg-gray-200 dark:bg-gray-800 relative">
+                  {/* Room image would go here */}
+                  <div className="absolute bottom-0 right-0 bg-primary p-2 text-white text-xs font-medium">
+                    {randomItemCount} {randomItemCount === 1 ? 'item' : 'items'}
+                  </div>
                 </div>
-              </div>
-              <CardHeader className="pb-2">
-                <CardTitle>{room.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Room from Notion database
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+                <CardHeader className="pb-2">
+                  <CardTitle>{room.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Click to view items
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
         
         {/* Not connected state */}

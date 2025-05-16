@@ -117,6 +117,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]
     });
   });
+  
+  // Get items for a specific room
+  app.get('/api/notion/room-items', (req, res) => {
+    const roomId = req.query.roomId;
+    
+    if (!roomId) {
+      return res.status(400).json({
+        success: false,
+        message: "Room ID is required"
+      });
+    }
+    
+    console.log(`Fetching items for room: ${roomId}`);
+    
+    // Generate sample items for the room
+    const items = generateSampleItemsForRoom(roomId as string);
+    
+    return res.json({
+      success: true,
+      items
+    });
+  });
+  
+  // Helper function to generate sample items for each room
+  function generateSampleItemsForRoom(roomId: string) {
+    const sampleItems = {
+      'bedroom': [
+        { id: 'bed-1', name: 'Queen Size Bed', description: 'Main sleeping area', image: '/assets/bed.jpg' },
+        { id: 'dresser-1', name: 'Wooden Dresser', description: 'For clothing storage', image: '/assets/dresser.jpg' },
+        { id: 'nightstand-1', name: 'Nightstand', description: 'Bedside table with lamp', image: '/assets/nightstand.jpg' }
+      ],
+      'master-bathroom': [
+        { id: 'shower-1', name: 'Glass Shower', description: 'Walk-in shower', image: '/assets/shower.jpg' },
+        { id: 'sink-1', name: 'Double Sink', description: 'His and hers sinks', image: '/assets/sink.jpg' },
+        { id: 'toilet-1', name: 'Toilet', description: 'Standard toilet', image: '/assets/toilet.jpg' }
+      ],
+      'office': [
+        { id: 'desk-1', name: 'Standing Desk', description: 'Adjustable height desk', image: '/assets/desk.jpg' },
+        { id: 'chair-1', name: 'Office Chair', description: 'Ergonomic chair', image: '/assets/chair.jpg' },
+        { id: 'bookshelf-1', name: 'Bookshelf', description: 'For books and decor', image: '/assets/bookshelf.jpg' }
+      ],
+      'coffee-room': [
+        { id: 'coffee-machine-1', name: 'Espresso Machine', description: 'For making coffee', image: '/assets/coffee.jpg' },
+        { id: 'table-1', name: 'Small Table', description: 'For coffee and snacks', image: '/assets/table.jpg' }
+      ],
+      'living-area': [
+        { id: 'sofa-1', name: 'Sectional Sofa', description: 'Large comfortable sofa', image: '/assets/sofa.jpg' },
+        { id: 'tv-1', name: '65" TV', description: 'Wall-mounted television', image: '/assets/tv.jpg' },
+        { id: 'coffee-table-1', name: 'Coffee Table', description: 'Center table', image: '/assets/coffee-table.jpg' }
+      ],
+      'guest-suite': [
+        { id: 'guest-bed-1', name: 'Queen Bed', description: 'For guests', image: '/assets/guest-bed.jpg' },
+        { id: 'guest-dresser-1', name: 'Small Dresser', description: 'For guest clothing', image: '/assets/guest-dresser.jpg' }
+      ],
+      'harry-potter-closet': [
+        { id: 'wand-1', name: 'Magic Wand', description: 'Made of holly with phoenix feather core', image: '/assets/wand.jpg' },
+        { id: 'invisibility-cloak-1', name: 'Invisibility Cloak', description: 'Makes the wearer invisible', image: '/assets/cloak.jpg' },
+        { id: 'marauders-map-1', name: "Marauder's Map", description: 'Shows every part of Hogwarts', image: '/assets/map.jpg' },
+        { id: 'broomstick-1', name: 'Nimbus 2000', description: 'Racing broomstick', image: '/assets/broomstick.jpg' }
+      ]
+    };
+    
+    // Return items for the requested room, or empty array if room not found
+    return sampleItems[roomId as keyof typeof sampleItems] || [];
+  }
 
   // Get database info
   app.get('/api/notion/database-info', async (req, res) => {
