@@ -19,7 +19,7 @@ const NOTION_PAGE_ID = extractPageIdFromUrl(process.env.NOTION_PAGE_URL);
 /**
  * Get all rooms from the Notion database
  */
-async function getRooms() {
+async async function getRooms() {
   try {
     console.log(`Fetching rooms from database ID: ${process.env.NOTION_ROOMS_DATABASE_ID}`);
     
