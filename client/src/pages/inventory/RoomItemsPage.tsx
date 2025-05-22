@@ -15,7 +15,7 @@ export default function RoomItemsPage() {
   const roomId = params?.roomId;
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, string | null>>({});
-  
+
   // Get the room name from roomId for display
   const getRoomName = (id: string) => {
     const roomNames: Record<string, string> = {
@@ -27,10 +27,10 @@ export default function RoomItemsPage() {
       'guest-suite': 'Guest Suite',
       'harry-potter-closet': 'Harry Potter Closet'
     };
-    
+
     return roomNames[id] || 'Unknown Room';
   };
-  
+
   // Fetch items for the selected room
   const { 
     data: items = [], 
@@ -53,12 +53,12 @@ export default function RoomItemsPage() {
   const handleSearch = (term: string) => {
     setSearchTerm(term);
   };
-  
+
   // Handle filter changes
   const handleFilter = (newFilters: Record<string, string | null>) => {
     setFilters(newFilters);
   };
-  
+
   // Go back to room list
   const handleBackToRooms = () => {
     setLocation("/inventory");
@@ -70,10 +70,10 @@ export default function RoomItemsPage() {
     if (searchTerm && !item.name.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
-    
+
     return true;
   });
-  
+
   // Update item count on the page
   useEffect(() => {
     if (items) {
@@ -88,7 +88,7 @@ export default function RoomItemsPage() {
         onOpenSettings={() => {}}
         isRefreshing={false}
       />
-      
+
       <main className="flex-1 container mx-auto px-4 py-4 pb-20 pt-16">
         {/* Room Header Section */}
         <div className="relative rounded-lg overflow-hidden mb-6 shadow-md h-48">
@@ -114,21 +114,21 @@ export default function RoomItemsPage() {
             </p>
           </div>
         </div>
-        
+
         {/* Search and Filter */}
         <SearchAndFilter 
           onSearch={handleSearch}
           onFilter={handleFilter}
           filterOptions={filterOptions}
         />
-        
+
         {/* Items Count */}
         <div className="mt-4 mb-2">
           <Badge variant="outline" className="text-sm font-normal">
             {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
           </Badge>
         </div>
-        
+
         {/* Items Grid */}
         <div className="grid grid-cols-2 gap-6 mt-8 px-4 max-w-4xl mx-auto">
           {isLoadingItems ? (
@@ -181,7 +181,7 @@ export default function RoomItemsPage() {
           )}
         </div>
       </main>
-      
+
       <BottomNavigation currentSection="inventory" />
     </div>
   );
