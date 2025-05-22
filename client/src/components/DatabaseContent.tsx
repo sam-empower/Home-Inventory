@@ -47,7 +47,7 @@ export function DatabaseContent({
         {Array.from({ length: 8 }).map((_, index) => {
           // Alternating between image and non-image cards in the skeleton
           const hasImageSkeleton = index % 3 !== 0; // Show 2/3 with images, 1/3 without
-          
+
           return (
             <Card 
               key={index} 
@@ -58,11 +58,11 @@ export function DatabaseContent({
                   <Skeleton className="h-full w-full" />
                 </div>
               )}
-              
+
               <CardContent className="px-3 pt-2 pb-3 flex-1 flex flex-col justify-between">
                 <div>
                   <Skeleton className="h-4 w-3/4 mb-2" />
-                  
+
                   <div className="mt-1 flex flex-wrap gap-1">
                     <Skeleton className="h-3 w-16 rounded-full" />
                     <Skeleton className="h-3 w-12 rounded-full" />
