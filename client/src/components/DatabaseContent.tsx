@@ -149,7 +149,7 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
 
   return (
     <Card 
-      className={`ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden w-full max-w-[200px] ${hasImage ? 'h-[180px]' : 'h-[87px]'} mx-1.5 flex flex-col`}
+      className={`ios-card bg-white dark:bg-gray-800 shadow hover:shadow-md transition transform active:scale-[0.99] overflow-hidden w-full max-w-[200px] ${hasImage ? 'h-[180px]' : 'h-[87px]'} mx-0.75 flex flex-col`}
       onClick={() => onClick(item.id)}
     >
       {hasImage ? (
@@ -171,9 +171,9 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
         <div className="h-0 shrink-0" />
       )}
 
-      <CardContent className="px-0.75 pt-0.5 pb-0.75 flex-1 flex flex-col justify-between">
+      <CardContent className="px-1 pt-1 pb-1 flex-1 flex flex-col justify-between">
         <div>
-          <h3 className="font-semibold text-gray-900 dark:text-white text-xs line-clamp-1">
+          <h3 className="font-bold text-gray-900 dark:text-white text-sm line-clamp-1">
             {item.title || 'Untitled'}
           </h3>
 
