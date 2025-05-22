@@ -163,8 +163,7 @@ export default function RoomItemsPage() {
                   <CardTitle>{item.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Box: {item.boxNames?.join(', ') || 'No box'}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">ID: {item.notionId || 'Not set'}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
                 </CardContent>
               </Card>
             ))
