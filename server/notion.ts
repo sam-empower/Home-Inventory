@@ -297,18 +297,31 @@ async function getItemsByRoom(roomId) {
         try {
           const boxProperty = page.properties.Box;
           if (boxProperty && boxProperty.type === 'relation' && boxProperty.relation) {
-            boxNames = boxProperty.relation.map(rel => rel.id);
+            // Get the actual box titles through a separate request for each box
+            const boxPromises = boxProperty.relation.map(async (rel) => {
+              try {
+                const boxPage = await notion.pages.retrieve({ page_id: rel.id });
+                const titleProp = Object.values(boxPage.properties).find(
+                  prop => prop.type === 'title'
+                );
+                return titleProp?.title?.[0]?.plain_text || rel.id;
+              } catch (err) {
+                console.log(`Error fetching box name: ${err.message}`);
+                return rel.id;
+              }
+            });
+            boxNames = await Promise.all(boxPromises);
           }
         } catch (err) {
           console.log(`No box relation for ${name}: ${err.message}`);
         }
 
-        // Get Notion ID if available
-        let notionId = "";
+        // Get ID field value if available
+        let itemId = "";
         try {
           const idProperty = page.properties.ID;
-          if (idProperty && idProperty.type === 'rich_text' && idProperty.rich_text.length > 0) {
-            notionId = idProperty.rich_text[0].plain_text;
+          if (idProperty && idProperty.type === 'number') {
+            itemId = idProperty.number?.toString() || "";
           }
         } catch (err) {
           console.log(`No ID field for ${name}: ${err.message}`);
@@ -320,7 +333,7 @@ async function getItemsByRoom(roomId) {
           description,
           image,
           boxNames,
-          notionId
+          itemId
         };
       } catch (error) {
         console.error(`Error mapping item: ${error.message}`);
