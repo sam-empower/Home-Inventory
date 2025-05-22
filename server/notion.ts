@@ -250,7 +250,7 @@ async function getItemsByRoom(roomId) {
     console.log(`Filtered down to ${filteredItems.length} items for room: ${roomId}`);
 
     // Transform the filtered items into our simplified format
-    const items = filteredItems.map(page => {
+    const items = await Promise.all(filteredItems.map(async (page) => {
       try {
         // Get the name of the item
         const nameProperty = page.properties.Name;
@@ -344,7 +344,7 @@ async function getItemsByRoom(roomId) {
           image: null
         };
       }
-    });
+    }));
 
     console.log(`Returning ${items.length} items for room ${roomId}`);
     return items;
@@ -362,33 +362,8 @@ async function getItemsByRoom(roomId) {
   }
 }
 
-const fetchDatabase = async (): Promise<NotionDatabaseItem[]> => {
-  try {
-    if (!isAuthenticated) {
-      return [];
-    }
 
-    // When offline, use cached data
-    if (isOfflineMode) {
-      const databaseId = databaseInfo?.id;
-      if (databaseId) {
-        const cachedData = await getCachedData(`database-${databaseId}`);
-        if (cachedData) {
-          return cachedData as NotionDatabaseItem[];
-        }
-      }
-      throw new Error("No cached data available while offline");
-    }
 
-    // Build query params
-    const queryParams = new URLSearchParams();
-
-    if (filters && Object.keys(filters).length > 0) {
-      queryParams.append('filters', JSON.stringify(filters));
-    }
-
-    if (sort) {
-      
 export {
   notion,
   NOTION_PAGE_ID,
