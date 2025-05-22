@@ -130,7 +130,7 @@ export default function RoomItemsPage() {
         </div>
         
         {/* Items Grid */}
-        <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-2 gap-6 mt-8 px-4 max-w-4xl mx-auto">
           {isLoadingItems ? (
             // Loading skeleton
             Array.from({ length: 6 }).map((_, index) => (
