@@ -114,7 +114,7 @@ export function DatabaseContent({
 
   // Regular content - using masonry grid with automatic placement
   return (
-    <div className="masonry-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div className="masonry-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1.5">
       {items.map((item) => (
         <DatabaseItemCard key={item.id} item={item} onClick={onItemClick} getStatusColor={getStatusColor} boxOptions={boxOptions} />
       ))}
@@ -171,9 +171,9 @@ function DatabaseItemCard({ item, onClick, getStatusColor, boxOptions = {} }: Da
         <div className="h-0 shrink-0" />
       )}
 
-      <CardContent className="px-3 pt-2 pb-3 flex-1 flex flex-col justify-between">
+      <CardContent className="px-1.5 pt-1 pb-1.5 flex-1 flex flex-col justify-between">
         <div>
-          <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-1">
+          <h3 className="font-semibold text-gray-900 dark:text-white text-xs line-clamp-1">
             {item.title || 'Untitled'}
           </h3>
 
