@@ -292,11 +292,35 @@ async function getItemsByRoom(roomId) {
           console.log(`No image for ${name}: ${err.message}`);
         }
         
+        // Get box names if available
+        let boxNames: string[] = [];
+        try {
+          const boxProperty = page.properties.Box;
+          if (boxProperty && boxProperty.type === 'relation' && boxProperty.relation) {
+            boxNames = boxProperty.relation.map(rel => rel.id);
+          }
+        } catch (err) {
+          console.log(`No box relation for ${name}: ${err.message}`);
+        }
+
+        // Get Notion ID if available
+        let notionId = "";
+        try {
+          const idProperty = page.properties.ID;
+          if (idProperty && idProperty.type === 'rich_text' && idProperty.rich_text.length > 0) {
+            notionId = idProperty.rich_text[0].plain_text;
+          }
+        } catch (err) {
+          console.log(`No ID field for ${name}: ${err.message}`);
+        }
+
         return {
           id: page.id,
           name,
           description,
-          image
+          image,
+          boxNames,
+          notionId
         };
       } catch (error) {
         console.error(`Error mapping item: ${error.message}`);
